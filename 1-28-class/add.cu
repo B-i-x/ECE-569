@@ -133,41 +133,51 @@ int main() {
   flush the printfs. 
   
   */
-  dim3 mygrid(ceil(count/1024.0));
-  dim3 myblock(1024);
+  // Sweep through block sizes
+  for (int blockSize = 32; blockSize <= 1024; blockSize *= 2) {
+    int gridSize = (int)ceil((float)count / blockSize);
 
-  //dim3 mygrid(16);
-  //dim3 myblock(1);
-  AddInts<<<mygrid,myblock>>>(d_a,d_b,count);
+    cudaEventCreate(&startEvent);
+    cudaEventCreate(&stopEvent);
+    cudaEventRecord(startEvent, 0);
 
-  //if printing from the kernel flush the printfs 
-  cudaError_t err = cudaGetLastError();
-  if (err != cudaSuccess) {
-    printf("Error: %s\n", cudaGetErrorString(err));
-    return 0;
+    dim3 myGrid(gridSize);
+    dim3 myBlock(blockSize);
+
+    AddInts<<<myGrid, myBlock>>>(d_a, d_b, count);
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        printf("Kernel launch error: %s\n", cudaGetErrorString(err));
+        continue; // Skip to next block size on error
+    }
+
+    cudaDeviceSynchronize();
+
+    cudaEventRecord(stopEvent, 0);
+    cudaEventSynchronize(stopEvent);
+    cudaEventElapsedTime(&elapsedTime, startEvent, stopEvent);
+
+    printf("Block size: %d, Execution time (ms): %f\n", blockSize, elapsedTime);
+
+    cudaEventDestroy(startEvent);
+    cudaEventDestroy(stopEvent);
+}
+
+  if (cudaMemcpy(h_a, d_a, count * sizeof(int), cudaMemcpyDeviceToHost) != cudaSuccess) {
+      cudaFree(d_a);
+      cudaFree(d_b);
+      printf("Data transfer error from device to host on d_a\n");
+      return 0;
   }
-  
-  cudaDeviceSynchronize();
 
-
-  // retrieve data from the device, check for error, free device if needed 
-  if (cudaMemcpy(h_a,d_a,count*sizeof(int),cudaMemcpyDeviceToHost) != cudaSuccess){
-    cudaFree(d_a);
-    cudaFree(d_b);
-    printf("data transfer error from host to device on d_a\n");
-    return 0;
+  for (i = 0; i < 5; i++) {
+      printf("%d \n", h_a[i]);
   }
-  
-  cudaEventRecord(stopEvent, 0);
-  cudaEventSynchronize(stopEvent);
-  cudaEventElapsedTime(&elapsedTime, startEvent, stopEvent);
-  printf("Total execution time (ms) %f\n",elapsedTime);
-  for(i=0;i<5;i++) {
-    printf("%d \n",h_a[i]);
-  }  
-  cudaEventDestroy(startEvent);
-  cudaEventDestroy(stopEvent);
 
+  cudaFree(d_a);
+  cudaFree(d_b);
+  free(h_a);
+  free(h_b);
 
   return 0;
 }
