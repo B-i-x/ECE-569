@@ -95,34 +95,43 @@ void printResults(float *h_matA, float *h_matB, float *h_matC,int SQWIDTH){
 // Templates for the three kernels are proviced below. 
 __global__ void kernel_1t1e(float *A, float *B, float *C, unsigned long WIDTH) {
 	// To DO: each thread produces one output matrix
+	// Each thread will calculate one element of the output matrix	
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
+
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
 
 
+	if (row < WIDTH && col < WIDTH) {
+		int index = row * WIDTH + col;
 
-
-
+		C[index] = A[index] + B[index];
+	}
 
 }
 
 __global__ void kernel_1t1r(float *A, float *B, float *C, unsigned long WIDTH) {
 	// To DO: each thread produces 1 output row
+	int row = blockIdx.y * blockDim.y + threadIdx.y;
 
-
-
-
-
-
+	for (int col = 0; col < WIDTH; col++) {
+		if (row < WIDTH) {
+			int index = row * WIDTH + col;
+			C[index] = A[index] + B[index];
+		}
+	}
 
 }
 
 __global__ void kernel_1t1c(float *A, float *B, float *C, unsigned long WIDTH) {
-     // To DO: each thread produces 1 output column
+	// To DO: each thread produces 1 output column
+	int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-
-
-
-
-
-
+	for (int row = 0; row < WIDTH; row++) {
+		if (col < WIDTH) {
+			int index = row * WIDTH + col;
+			C[index] = A[index] + B[index];
+		}
+	}
 
 }
 
