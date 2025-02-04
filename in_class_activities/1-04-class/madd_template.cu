@@ -184,10 +184,11 @@ int main(int argc, char* argv[]) {
 	cudaMemcpy(d_matB, h_matB, d_size, cudaMemcpyHostToDevice); 
 	//printf("[**] GPU Allocation time for %lux%lu matrix: %.2fsec \n",SQWIDTH,SQWIDTH,(double)(clock()-d_alloctime)/CLOCKS_PER_SEC );
 
+	int kernel_repitions = 10;
 
 	// Number of threads = SQWIDTH*SQWIDTH
 	printf("[**] Starting kernel program 'kernel_1t1e' execution\n");
-	for(int i = 0; i<2; i++){
+	for(int i = 0; i<kernel_repitions; i++){
 		// ELEMENT
 		cudaEventCreate(&start);
 		cudaEventCreate(&end);
@@ -218,7 +219,7 @@ int main(int argc, char* argv[]) {
 
 	printf("[] Starting kernel program 'kernel_1t1r'.execution\n");
 	avems = 0.0;
-	for(int i = 0; i<2; i++){
+	for(int i = 0; i<kernel_repitions; i++){
 		// ELEMENT
 		cudaEventCreate(&start);
 		cudaEventCreate(&end);
@@ -245,7 +246,7 @@ int main(int argc, char* argv[]) {
 	
 	printf("[**] Starting kernel program 'kernel_1t1c' execution\n");
 	avems = 0;
-	for(int i = 0; i<2; i++){
+	for(int i = 0; i<kernel_repitions; i++){
 		// ELEMENT
 		cudaEventCreate(&start);
 		cudaEventCreate(&end);
