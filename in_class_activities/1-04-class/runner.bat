@@ -9,6 +9,6 @@ IF %ERRORLEVEL% NEQ 0 (
 )
 
 echo Compilation successful, running the program...
-matrixadd.exe 1000
+matrixadd.exe 6000
 :end
 pause
