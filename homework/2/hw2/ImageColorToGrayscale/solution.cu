@@ -14,11 +14,13 @@
 __global__ void rgb2gray(const float *input, float *output, int width, int height) {
   int idx = blockIdx.x * blockDim.x + threadIdx.x;
   int totalPixels = width * height;
+
   if (idx < totalPixels) {
-    int rgbIdx = idx * 3;
-    float r = input[rgbIdx];
+    int rgbIdx = idx * 3; //making sure we skip every 3 elements
+    float r = input[rgbIdx]; //indexing as shown in class
     float g = input[rgbIdx + 1];
     float b = input[rgbIdx + 2];
+    
     output[idx] = 0.21f * r + 0.71f * g + 0.07f * b;
   }
 }
