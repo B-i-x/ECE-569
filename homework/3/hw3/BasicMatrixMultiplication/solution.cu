@@ -61,7 +61,8 @@ int main(int argc, char **argv) {
   numCColumns = numBColumns;   // set to correct value
 
   // Allocate memory for the output matrix C on the host
-  
+  hostC = (float *)malloc(numCRows * numCColumns * sizeof(float));
+
   wbTime_stop(Generic, "Importing data and creating memory on host");
 
   wbLog(TRACE, "The dimensions of A are ", numARows, " x ", numAColumns);
