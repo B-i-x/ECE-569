@@ -38,36 +38,33 @@ cd $hw_path
 # mkdir -p BasicMatrixMultiplication_output
 # mkdir TiledMatrixMultiplication_output
 ###
-PATHS[0]=$hw_path/MatrixMultiplication/Dataset/10;
-PATHS[1]=$hw_path/MatrixMultiplication/Dataset/11;
-PATHS[2]=$hw_path/MatrixMultiplication/Dataset/12;
-PATHS[3]=$hw_path/MatrixMultiplication/Dataset/13;
+PATHS[0]=$hw_path/MatrixMultiplication/Dataset/0;
 
-#count=0
-#for i in ${PATHS[@]}
-#do
-#   file=output$((count)).txt
-#   ./BasicMatrixMultiplication_Solution -e "$i/output.raw" -i "$i/input0.raw,$i/input1.raw" -t matrix > BasicMatrixMultiplication_output/"$file"
-# count=$((count+1))
-#done
+#PATHS[0]=$hw_path/MatrixMultiplication/Dataset/10;
+#PATHS[1]=$hw_path/MatrixMultiplication/Dataset/11;
+#PATHS[2]=$hw_path/MatrixMultiplication/Dataset/12;
+#PATHS[3]=$hw_path/MatrixMultiplication/Dataset/13;
 
+count=0
+for i in ${PATHS[@]}
+do
+   file=output$((count)).txt
+   ./BasicMatrixMultiplication_Solution -e "$i/output.raw" -i "$i/input0.raw,$i/input1.raw" -t matrix > BasicMatrixMultiplication_output/"$file"
+ count=$((count+1))
+done
 
-PATHS[0]=$hw_path/TiledMatrixMultiplication/Dataset/10;
-PATHS[1]=$hw_path/TiledMatrixMultiplication/Dataset/11;
-PATHS[2]=$hw_path/TiledMatrixMultiplication/Dataset/12;
-PATHS[3]=$hw_path/TiledMatrixMultiplication/Dataset/13;
+PATHS[0]=$hw_path/TiledMatrixMultiplication/Dataset/0;
+
+#PATHS[0]=$hw_path/TiledMatrixMultiplication/Dataset/10;
+#PATHS[1]=$hw_path/TiledMatrixMultiplication/Dataset/11;
+#PATHS[2]=$hw_path/TiledMatrixMultiplication/Dataset/12;
+#PATHS[3]=$hw_path/TiledMatrixMultiplication/Dataset/13;
 
 TILEEXES[0]=$hw_path/no_timer_util_Solution_tile4;
 TILEEXES[1]=$hw_path/no_timer_util_Solution_tile8;
 TILEEXES[2]=$hw_path/no_timer_util_Solution_tile16;
 TILEEXES[3]=$hw_path/no_timer_util_Solution_tile32;
-#count=0
-#for j in ${PATHS[@]}
-#do
-#   file=output$((count)).txt
-#   ./TiledMatrixMultiplication_Solution -e "$j/output.raw" -i "$j/input0.raw,$j/input1.raw" -t matrix > TiledMatrixMultiplication_output/"$file"
-# count=$((count+1))
-#done
+
 
 # Loop over each tile-executable and each dataset path
 exe_count=4

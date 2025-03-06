@@ -1,2 +1,2 @@
-Total execution time (ms) 61.049438 for block size 4 x 4 matrix size of 2048 x 2048 and 2048 x 2048
+Total execution time (ms) 0.142176 for block size 4 x 4 matrix size of 16 x 16 and 16 x 16
 {"data": {"correctq": true, "message": "The solution is correct"}, "type": "solution"}
