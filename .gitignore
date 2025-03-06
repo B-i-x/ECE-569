@@ -75,3 +75,6 @@ compile_commands.json
 # ======================================================
 .DS_Store
 Thumbs.db
+build_dir/BasicMatrixMultiplication_Solution
+build_dir/no_timer_util_Solution_tile4
+build_dir/TiledMatrixMultiplication_Solution
