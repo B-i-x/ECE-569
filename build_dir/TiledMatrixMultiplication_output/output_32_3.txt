@@ -1,0 +1,2 @@
+Total execution time (ms) 35.462143 for block size 32 x 32 matrix size of 4096 x 2047 and 2047 x 4095
+{"data": {"correctq": true, "message": "The solution is correct"}, "type": "solution"}

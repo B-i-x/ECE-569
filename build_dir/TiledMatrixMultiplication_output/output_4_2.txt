@@ -1,0 +1,2 @@
+Total execution time (ms) 221.064377 for block size 4 x 4 matrix size of 4096 x 2048 and 2048 x 4096
+{"data": {"correctq": true, "message": "The solution is correct"}, "type": "solution"}
