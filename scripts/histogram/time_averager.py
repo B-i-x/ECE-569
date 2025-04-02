@@ -4,11 +4,12 @@ import numpy as np
 
 # Define your parameters here
 VERSION_NUM = 2
+SUBVERSION_NUM = 2
 INITIAL_DATASET_INDEX = 0
 FINAL_DATASET_INDEX = 1
 RUN_NUM = 10
 
-base_path = f"outputs/histogram/v{VERSION_NUM}/repeat"
+base_path = f"outputs/histogram/v{VERSION_NUM}/{SUBVERSION_NUM}/"
 
 
 
