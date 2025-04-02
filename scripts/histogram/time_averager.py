@@ -3,7 +3,7 @@ import re
 import numpy as np
 
 # Define your parameters here
-version_number_input = 0
+version_number_input = 1
 base_path = f"outputs/histogram/v{version_number_input}/repeat"
 
 first_dataset = 6
@@ -32,6 +32,7 @@ for dataset in range(first_dataset, last_dataset):
     average_time = np.mean(times)
     dataset_avg_times.append((dataset, average_time))
 
+print(times)
 # Print averaged times
 for dataset, avg_time in dataset_avg_times:
     print(f"Dataset {dataset}: Average Compute Time = {avg_time:.6f} ms")
