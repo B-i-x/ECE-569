@@ -28,7 +28,7 @@ do
 
     for (( run=1; run<=RUN_NUM; run++ ))
     do
-        file_path="${base_path}/output${dataset}_run${run}.txt"
+        file_path="${base_path}/Histogram_output/output${dataset}_run${run}.txt"
         if [ ! -f "$file_path" ]; then
             echo "File $file_path not found. Skipping this run." >&2
             continue
