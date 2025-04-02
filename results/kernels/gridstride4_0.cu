@@ -68,73 +68,47 @@ __global__ void histogram_shared_optimized(
     unsigned int *input, 
     unsigned int *bins,
     unsigned int num_elements,
-    unsigned int num_bins) 
-    {
+    unsigned int num_bins) {
+
     extern __shared__ unsigned int shared_bins[];
 
-    // Initialize shared memory histogram to zero
+    // Initialize shared memory histogram to zero cooperatively.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
         shared_bins[i] = 0;
     }
     __syncthreads();
 
+    // Calculate global thread ID and total threads in the grid.
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int total_threads = gridDim.x * blockDim.x;
 
-    // Process a fixed number of elements per thread iteration
-    const unsigned int elements_per_thread = 8;  // Tunable parameter
+    // Coarsening parameter: number of elements each thread processes per iteration.
+    const unsigned int elements_per_thread = 4;  // Tunable parameter
 
-    // Local registers for compression
-    // Assuming worst-case: each element in the batch falls into a different bin.
-    unsigned int local_bins[elements_per_thread];
-    unsigned int local_counts[elements_per_thread];
-
-    // Initialize local accumulators
-    for (int i = 0; i < elements_per_thread; i++) {
-        local_bins[i] = num_bins;  // Use an invalid bin index as placeholder
-        local_counts[i] = 0;
-    }
-
-    // Grid-stride loop to cover all input elements in batches
-    for (unsigned int base = tid * elements_per_thread; base < num_elements; base += total_threads * elements_per_thread) {
-        // Reset local accumulators for this batch
-        int num_local = 0;
-        for (int i = 0; i < elements_per_thread; i++) {
-            unsigned int index = base + i;
-            if (index >= num_elements) break;
-
-            unsigned int bin = input[index];
-            // Check if bin is already in our local accumulator
-            bool found = false;
-            for (int j = 0; j < num_local; j++) {
-                if (local_bins[j] == bin) {
-                    local_counts[j]++;
-                    found = true;
-                    break;
-                }
-            }
-            // If not found, add a new entry if there is room
-            if (!found && num_local < elements_per_thread) {
-                local_bins[num_local] = bin;
-                local_counts[num_local] = 1;
-                num_local++;
-            }
+    // Use a grid-stride loop to cover all elements.
+    for (unsigned int index = tid * elements_per_thread; index < num_elements; index += total_threads * elements_per_thread) {
+        // Process a contiguous block of elements for improved coalescing.
+        unsigned int end = index + elements_per_thread;
+        if (end > num_elements) {
+            end = num_elements;
         }
-        // Perform fewer atomic updates: one per unique bin in this batch
-        for (int i = 0; i < num_local; i++) {
-            if (local_bins[i] < num_bins) {
-                atomicAdd(&shared_bins[local_bins[i]], local_counts[i]);
+        for (unsigned int i = index; i < end; ++i) {
+            unsigned int bin_idx = input[i];
+            if (bin_idx < num_bins) {
+                atomicAdd(&shared_bins[bin_idx], 1);
             }
         }
     }
     __syncthreads();
 
-    // Reduction: accumulate shared histogram into global histogram
+    // Reduction Step: accumulate counts from shared memory into global memory.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-            atomicAdd(&bins[i], shared_bins[i]);
+        unsigned int bin_count = shared_bins[i];
+        if (bin_count > 0) {
+            atomicAdd(&bins[i], bin_count);
+        }
     }
 }
-
 
 
 // clipping function

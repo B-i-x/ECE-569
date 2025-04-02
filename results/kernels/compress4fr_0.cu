@@ -82,7 +82,7 @@ __global__ void histogram_shared_optimized(
     unsigned int total_threads = gridDim.x * blockDim.x;
 
     // Process a fixed number of elements per thread iteration
-    const unsigned int elements_per_thread = 8;  // Tunable parameter
+    const unsigned int elements_per_thread = 4;  // Tunable parameter
 
     // Local registers for compression
     // Assuming worst-case: each element in the batch falls into a different bin.
