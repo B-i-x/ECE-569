@@ -78,7 +78,7 @@ __global__ void histogram_shared_kernel(
 //
 // The idea of thread coarsening is adapted from common GPU optimization techniques for parallel histogram computations described in CUDA programming best practices.
 
-__global__ void histogram_shared_optimized(unsigned int input, unsigned intbins,
+__global__ void histogram_shared_optimized(unsigned int *input, unsigned int *bins,
     unsigned int num_elements,
     unsigned int num_bins) {
     // Define warp size and padding factor to reduce bank conflicts. 
@@ -88,7 +88,7 @@ __global__ void histogram_shared_optimized(unsigned int input, unsigned intbins,
     // For every 'warpSize' bins, we add 'pad' extra element. 
     unsigned int padded_size = num_bins + (num_bins / warpSize) * pad;
     // Dynamically allocated shared memory histogram with padding.
-    extern shared unsigned int shared_bins[];
+    extern __shared__ unsigned int shared_bins[];
 
     // Initialize the shared memory histogram to 0 in a coalesced manner.
     // Use pad and padded_size in the index calculation.
@@ -97,7 +97,7 @@ __global__ void histogram_shared_optimized(unsigned int input, unsigned intbins,
         unsigned int index = i + (i / warpSize) * pad;
         shared_bins[index] = 0;
     }
-    syncthreads();
+    __syncthreads();
 
     // Calculate global thread id and overall stride.
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -112,7 +112,7 @@ __global__ void histogram_shared_optimized(unsigned int input, unsigned intbins,
             atomicAdd(&shared_bins[index], 1);
         }
     }
-    syncthreads();
+    __syncthreads();
 
     // Reduction Step: Each thread writes part of the shared histogram to global memory.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
