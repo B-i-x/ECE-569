@@ -63,87 +63,45 @@ __global__ void histogram_shared_kernel(
 }
 
 
-// version 2
-// your method of optimization using shared memory 
-// include DETAILED comments describing your approach
-// for competition you need to include description of the idea
-// where you borrowed the idea from, and how you implmented 
-// Version 2: Optimized Histogram Calculation using Shared Memory
-// Detailed Comments Describing the Optimization Approach:
-//
-// version 2
-// your method of optimization using shared memory 
-// include DETAILED comments describing your approach
-// for competition you need to include description of the idea
-// where you borrowed the idea from, and how you implmented 
-// Version 2: Optimized Histogram Calculation using Shared Memory
-// Detailed Comments Describing the Optimization Approach:
-//
-// Optimization strategy combines two key GPU parallel optimization techniques:
-// 1. **Shared Memory Histogram**: Local histogram creation in shared memory to minimize global atomic conflicts.
-// 2. **Coarsening**: Explicitly handling multiple input elements per thread to improve data locality and reduce overhead.
-//
-// The idea of thread coarsening is adapted from common GPU optimization techniques for parallel histogram computations described in CUDA programming best practices.
 
-// version 2
-// your method of optimization using shared memory 
-// include DETAILED comments describing your approach
-// for competition you need to include description of the idea
-// Kernel 1: Each block computes its own partial histogram in shared memory.
-__global__ void histogram_partial(
-    const unsigned int *input,
-    unsigned int *partial_hist, // each block writes its own histogram here
+__global__ void histogram_shared_optimized(
+    unsigned int *input, 
+    unsigned int *bins,
     unsigned int num_elements,
-    unsigned int num_bins)
-{
-    // Allocate shared memory for the block’s histogram
-    extern __shared__ unsigned int s_hist[];
+    unsigned int num_bins) {
 
-    // Initialize shared memory histogram to zero cooperatively.
-    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        s_hist[i] = 0;
-    }
-    __syncthreads();
+    extern __shared__ unsigned int shared_bins[];
 
-    // Compute global thread ID and overall stride.
+
+    // Calculate thread and grid dimensions for bucketing input
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int stride = gridDim.x * blockDim.x;
 
-    // Each thread processes a subset of the input.
-    for (unsigned int i = tid; i < num_elements; i += stride) {
-        unsigned int bin = input[i];
-        if (bin < num_bins) {
-            // Update shared memory histogram using atomic operations.
-            atomicAdd(&s_hist[bin], 1);
+    // Coarsening Step: explicitly handle multiple input elements per thread
+    const unsigned int elements_per_thread = 4; // Tunable parameter
+    unsigned int start = tid * elements_per_thread;
+    unsigned int end = min(start + elements_per_thread, num_elements);
+
+    // Populate local histogram in shared memory
+    for (unsigned int i = start; i < end; ++i) {
+        unsigned int bin_idx = input[i];
+        if (bin_idx < num_bins) {
+            atomicAdd(&(shared_bins[bin_idx]), 1);
         }
     }
+
     __syncthreads();
 
-    // Write the block’s partial histogram to global memory.
-    // Since each block writes to its own portion, no atomics are needed here.
+    // Reduction Step: accumulate counts from shared memory into global memory
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        partial_hist[blockIdx.x * num_bins + i] = s_hist[i];
+        unsigned int bin_count = shared_bins[i];
+        if (bin_count > 0) {
+            atomicAdd(&(bins[i]), bin_count);
+        }
     }
+
+    // No further synchronization needed since each thread safely updates global bins independently
 }
 
-// Kernel 2: Reduce the per-block histograms into the final histogram.
-__global__ void histogram_reduce(
-    const unsigned int *partial_hist, // array of partial histograms
-    unsigned int *bins,               // final output histogram
-    unsigned int num_blocks,
-    unsigned int num_bins)
-{
-    // Each thread is responsible for summing one bin.
-    unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
-    if (bin < num_bins) {
-        unsigned int sum = 0;
-        // Sum this bin over all block-level histograms.
-        for (unsigned int b = 0; b < num_blocks; b++) {
-            sum += partial_hist[b * num_bins + bin];
-        }
-        bins[bin] = sum;
-    }
-}
 
 // clipping function
 // resets bins that have value larger than 127 to 127. 

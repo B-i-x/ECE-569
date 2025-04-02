@@ -74,55 +74,27 @@ void histogram(
  }
 
  else if (kernel_version == 2) {
-    // ---------- Step 1: Launch Partial Histogram Kernel ----------
-    // Zero out the global bins (final histogram) first.
+    // Zero out bins
     CUDA_CHECK(cudaMemset(bins, 0, num_bins * sizeof(unsigned int)));
     
-    // Choose the number of blocks for the partial histogram kernel.
-    // For example, if you have 30 blocks:
-    const unsigned int num_blocks = 30;
-    
-    // Allocate device memory for the partial histograms.
-    // Each block writes its own histogram of 'num_bins' entries.
-    unsigned int *partial_hist = nullptr;
-    size_t partial_hist_bytes = num_blocks * num_bins * sizeof(unsigned int);
-    CUDA_CHECK(cudaMalloc(&partial_hist, partial_hist_bytes));
-    
-    // Launch the partial histogram kernel.
+    // Launch histogram_shared_optimized kernel
     {
-        // Use a block size (e.g., 512 threads per block).
-        dim3 blockDim(512);
-        // Grid size equals the number of blocks we want.
-        dim3 gridDim(num_blocks);
-        // Allocate shared memory equal to 'num_bins * sizeof(unsigned int)'.
-        histogram_partial<<<gridDim, blockDim, num_bins * sizeof(unsigned int)>>>(
-            input, partial_hist, num_elements, num_bins);
-        CUDA_CHECK(cudaGetLastError());
-        CUDA_CHECK(cudaDeviceSynchronize());
+      // Choose a block and grid configuration.
+      dim3 blockDim(512), gridDim(30);
+      // Allocate shared memory for 'num_bins' unsigned ints.
+      histogram_shared_optimized<<<gridDim, blockDim, num_bins * sizeof(unsigned int)>>>(
+          input, bins, num_elements, num_bins);
+      CUDA_CHECK(cudaGetLastError());
+      CUDA_CHECK(cudaDeviceSynchronize());
     }
     
-    // ---------- Step 2: Launch Global Reduction Kernel ----------
+    // Make sure bin values are not too large (clipping)
     {
-        // Each thread in this kernel will accumulate one bin.
-        dim3 blockDim(512);
-        // Compute grid dimensions to cover all bins.
-        dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
-        histogram_reduce<<<gridDim, blockDim>>>(
-            partial_hist, bins, num_blocks, num_bins);
-        CUDA_CHECK(cudaGetLastError());
-        CUDA_CHECK(cudaDeviceSynchronize());
-    }
-    
-    // Free the temporary partial histogram buffer.
-    CUDA_CHECK(cudaFree(partial_hist));
-    
-    // ---------- Step 3: Clip Bin Values if Necessary ----------
-    {
-        dim3 blockDim(512);
-        dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
-        convert_kernel<<<gridDim, blockDim>>>(bins, num_bins);
-        CUDA_CHECK(cudaGetLastError());
-        CUDA_CHECK(cudaDeviceSynchronize());
+      dim3 blockDim(512);
+      dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
+      convert_kernel<<<gridDim, blockDim>>>(bins, num_bins);
+      CUDA_CHECK(cudaGetLastError());
+      CUDA_CHECK(cudaDeviceSynchronize());
     }
   }
 
