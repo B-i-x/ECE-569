@@ -8,6 +8,7 @@
 (0, .51783680000000000000, doublekernel_0.cu)
 (0, .18480320000000000000, realbucket5_0.cu)
 (0, 3.19078720000000000000, realbucket2_0.cu) #with outliers
-(0, .18670400000000000000, realbucket2_0.cu)
+(0, .18670400000000000000, realbucket2_0.cu) #ignoring outliers
 (0, .18611200000000000000, frrealbucket2_0.cu)
 (0, .18953280000000000000, bucket8_0.cu)
+(0, .19771840000000000000, gridstride4_0.cu)
