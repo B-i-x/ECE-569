@@ -80,3 +80,5 @@ Thumbs.db
 build_dir/BasicMatrixMultiplication_Solution
 build_dir/no_timer_util_Solution_tile4
 build_dir/TiledMatrixMultiplication_Solution
+build_dir/Histogram_DatasetGenerator
+build_dir/Histogram_Solution
