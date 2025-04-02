@@ -1,3 +1,5 @@
+#include <limits>
+#define UINT_MAX_VAL 0xFFFFFFFF
 // version 0
 // global memory only interleaved version
 // include comments describing your approach
@@ -129,6 +131,84 @@ __global__ void histogram_shared_optimized(
     // Reduction: accumulate shared histogram into global histogram
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
             atomicAdd(&bins[i], shared_bins[i]);
+    }
+}
+
+
+
+// -----------------------------------------------------------------
+// Bitonic Sort Kernel
+// This kernel performs one comparison-swap step for the bitonic sort.
+// It uses two parameters, 'j' and 'k', which control the current stage.
+// The array 'd_data' is assumed to have 'length' elements (a power of two).
+__global__ void bitonic_sort_kernel(unsigned int *d_data, int length, int j, int k) {
+    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= length) return;
+
+    // Compute the partner index for this thread.
+    unsigned int ixj = idx ^ j;
+    if (ixj > idx && ixj < length) {
+        // For indices with bit (k) not set, sort in ascending order.
+        if ((idx & k) == 0) {
+            if (d_data[idx] > d_data[ixj]) {
+                unsigned int temp = d_data[idx];
+                d_data[idx] = d_data[ixj];
+                d_data[ixj] = temp;
+            }
+        }
+        // Otherwise, sort in descending order.
+        else {
+            if (d_data[idx] < d_data[ixj]) {
+                unsigned int temp = d_data[idx];
+                d_data[idx] = d_data[ixj];
+                d_data[ixj] = temp;
+            }
+        }
+    }
+}
+
+// -----------------------------------------------------------------
+// Device functions: Binary search helpers for lower_bound and upper_bound.
+// These are used by the histogram_from_sorted kernel.
+__device__ unsigned int lower_bound(const unsigned int *data, unsigned int n, unsigned int key) {
+    unsigned int low = 0;
+    unsigned int high = n;
+    while (low < high) {
+        unsigned int mid = low + (high - low) / 2;
+        if (data[mid] < key)
+            low = mid + 1;
+        else
+            high = mid;
+    }
+    return low;
+}
+
+__device__ unsigned int upper_bound(const unsigned int *data, unsigned int n, unsigned int key) {
+    unsigned int low = 0;
+    unsigned int high = n;
+    while (low < high) {
+        unsigned int mid = low + (high - low) / 2;
+        if (data[mid] <= key)
+            low = mid + 1;
+        else
+            high = mid;
+    }
+    return low;
+}
+
+// -----------------------------------------------------------------
+// Histogram from Sorted Kernel
+// Each thread is responsible for one bin. It uses binary search (lower_bound and upper_bound)
+// on the sorted input to determine how many elements fall into its bin.
+__global__ void histogram_from_sorted(const unsigned int *sorted_input,
+                                        unsigned int *bins,
+                                        unsigned int num_elements,
+                                        unsigned int num_bins) {
+    unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
+    if (bin < num_bins) {
+         unsigned int lb = lower_bound(sorted_input, num_elements, bin);
+         unsigned int ub = upper_bound(sorted_input, num_elements, bin);
+         bins[bin] = ub - lb;
     }
 }
 
