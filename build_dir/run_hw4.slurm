@@ -49,10 +49,10 @@ PATHS[6]=$hw_path/Histogram/Dataset/6
 count=0
 for j in ${PATHS[@]}
 do
-  for run in {1..5}
+  for run in {1..50}
   do
      file=output${count}_run${run}.txt
-     /usr/bin/time ./Histogram_Solution -e $j/output.raw -i $j/input.raw 2 -t integral_vector > Histogram_output/$file
+     /usr/bin/time ./Histogram_Solution -e $j/output.raw -i $j/input.raw 1 -t integral_vector > Histogram_output/$file
   done
   count=$((count+1))
 done
