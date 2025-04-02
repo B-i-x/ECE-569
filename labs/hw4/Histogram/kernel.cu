@@ -1,5 +1,8 @@
 #include <limits>
 #define UINT_MAX_VAL 0xFFFFFFFF
+#define BITS_PER_PASS 8
+#define RADIX (1 << BITS_PER_PASS)  // 256
+#define MASK (RADIX - 1)            // 0xFF
 // version 0
 // global memory only interleaved version
 // include comments describing your approach
@@ -164,6 +167,32 @@ __device__ unsigned int upper_bound(const unsigned int *data, unsigned int n, un
             high = mid;
     }
     return low;
+}
+// Kernel 1: Compute the histogram for the current digit.
+// For each element in 'in', extract the digit at position 'shift'
+// and atomically increment the corresponding bucket in 'hist'.
+__global__ void radix_histogram_kernel(const unsigned int *in, int n, int shift, unsigned int *hist) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx < n) {
+        unsigned int value = in[idx];
+        unsigned int digit = (value >> shift) & MASK;
+        atomicAdd(&hist[digit], 1);
+    }
+}
+
+// -----------------------------------------------------------------
+// Kernel 2: Scatter elements into the output array using the bucket offsets.
+// Each element's digit is computed and then an atomicAdd on bucket_offsets
+// yields the proper position at which to write the element into 'out'.
+__global__ void radix_scatter_kernel(const unsigned int *in, int n, int shift, unsigned int *bucket_offsets, unsigned int *out) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if(idx < n) {
+        unsigned int value = in[idx];
+        unsigned int digit = (value >> shift) & MASK;
+        // Atomically update the bucket offset for this digit and get the position.
+        unsigned int pos = atomicAdd(&bucket_offsets[digit], 1);
+        out[pos] = value;
+    }
 }
 
 // -----------------------------------------------------------------
