@@ -66,7 +66,6 @@ __global__ void histogram_shared_kernel(
 
 __global__ void histogram_shared_optimized(
     unsigned int *input, 
-    unsigned int *input, 
     unsigned int *bins,
     unsigned int num_elements,
     unsigned int num_bins) {
