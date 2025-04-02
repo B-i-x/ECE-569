@@ -82,67 +82,45 @@ __global__ void histogram_shared_kernel(
 // your method of optimization using shared memory 
 // include DETAILED comments describing your approach
 // for competition you need to include description of the idea
-// where you borrowed the idea from, and how you implmented 
-// version 2
-// your method of optimization using shared memory 
-// include DETAILED comments describing your approach
-// for competition you need to include description of the idea
-// where you borrowed the idea from, and how you implmented 
-// Version 2: Optimized Histogram Calculation using Shared Memory
-// Detailed Comments Describing the Optimization Approach:
-//
-// Optimization strategy combines two key GPU parallel optimization techniques:
-// 1. **Shared Memory Histogram**: Local histogram creation in shared memory to minimize global atomic conflicts.
-// 2. **Coarsening**: Explicitly handling multiple input elements per thread to improve data locality and reduce overhead.
-//
-// The idea of thread coarsening is adapted from common GPU optimization techniques for parallel histogram computations described in CUDA programming best practices.
 __global__ void histogram_shared_optimized(unsigned int *input, unsigned int *bins,
     unsigned int num_elements,
     unsigned int num_bins) {
-    // Define warp size and padding factor to reduce bank conflicts. 
-    const unsigned int warpSize = 32; 
-    const unsigned int pad = 1; 
-    // Compute the total size of the padded histogram. 
-    // For every 'warpSize' bins, we add 'pad' extra element. 
-    unsigned int padded_size = num_bins + (num_bins / warpSize) * pad;
-    // Dynamically allocated shared memory histogram with padding.
+
+    // Allocate shared memory for the local histogram (one entry per bin)
     extern __shared__ unsigned int shared_bins[];
 
-    // Initialize the shared memory histogram to 0 in a coalesced manner.
-    // Use pad and padded_size in the index calculation.
+    // Initialize shared memory bins to zero using threads cooperatively
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        // Compute padded index: add 'pad' every warpSize bins.
-        unsigned int index = i + (i / warpSize) * pad;
-        shared_bins[index] = 0;
+    shared_bins[i] = 0;
     }
+
     __syncthreads();
 
-    // Calculate global thread id and overall stride.
+    // Calculate thread and grid dimensions for bucketing input
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int stride = gridDim.x * blockDim.x;
 
-    // Bucketing Step: Each thread processes multiple elements.
+    // Bucketing Step: populate local histogram in shared memory
     for (unsigned int i = tid; i < num_elements; i += stride) {
         unsigned int bin_idx = input[i];
         if (bin_idx < num_bins) {
-            // Compute the padded index using pad.
-            unsigned int index = bin_idx + (bin_idx / warpSize) * pad;
-            atomicAdd(&shared_bins[index], 1);
+            atomicAdd(&(shared_bins[bin_idx]), 1);
         }
     }
+
     __syncthreads();
 
-    // Reduction Step: Each thread writes part of the shared histogram to global memory.
+    // Parallel Reduction Step: efficiently accumulate counts into global memory
+    // Each thread handles a portion of the bins, significantly reducing global memory atomic contention.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        unsigned int index = i + (i / warpSize) * pad;
-        unsigned int bin_count = shared_bins[index];
+        unsigned int bin_count = shared_bins[i];
         if (bin_count > 0) {
-            atomicAdd(&bins[i], bin_count);
+            atomicAdd(&(bins[i]), bin_count);
         }
     }
 
+// No further synchronization needed since each thread safely updates global bins independently
 }
-
 
 
 
