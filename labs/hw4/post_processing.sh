@@ -24,7 +24,7 @@ DISCARD_RUNS_STR=${5:-""}  # optional parameter; defaults to an empty string
 IFS=',' read -r -a DISCARD_RUNS_ARRAY <<< "$DISCARD_RUNS_STR"
 
 base_path="."  # Assumes current folder
-results_folder="results"
+results_folder="../results"
 mkdir -p "$results_folder"
 
 # Regular expression to match the compute time line.
@@ -75,7 +75,7 @@ do
         average=$(echo "$sum / $count" | bc -l)
         # Form the new kernel file name using the dataset id.
         new_kernel_file="${NEW_KERNEL_BASE_NAME}_${dataset}.cu"
-        cp ../labs/hw4/Histogram/kernel.cu "${results_folder}/${new_kernel_file}"
+        cp ../labs/hw4/Histogram/kernel.cu "${results_folder}/kernels/${new_kernel_file}"
         # Append dataset, average, and the new kernel file name to the results file.
         echo "($dataset, $average, ${new_kernel_file})" >> "${results_folder}/results.txt"
     else
