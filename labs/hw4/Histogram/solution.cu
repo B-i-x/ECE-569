@@ -73,39 +73,14 @@ else if (kernel_version==2) {
  // zero out bins
   CUDA_CHECK(cudaMemset(bins, 0, num_bins * sizeof(unsigned int)));
   // Launch histogram kernel on the bins
-  // Choose the number of blocks for the partial histogram kernel.
-  const unsigned int num_blocks = 30;
-    
-  // Allocate device memory for the partial histograms.
-  unsigned int *partial_hist = nullptr;
-  size_t partial_hist_bytes = num_blocks * num_bins * sizeof(unsigned int);
-  CUDA_CHECK(cudaMalloc(&partial_hist, partial_hist_bytes));
-
-  // Launch Kernel 1: histogram_partial.
-  // Each block builds its own histogram in shared memory.
   {
-      dim3 blockDim(512);
-      dim3 gridDim(num_blocks);
-      // Shared memory size is num_bins * sizeof(unsigned int)
-      histogram_partial<<<gridDim, blockDim, num_bins * sizeof(unsigned int)>>>(
-          input, partial_hist, num_elements, num_bins);
-      CUDA_CHECK(cudaGetLastError());
-      CUDA_CHECK(cudaDeviceSynchronize());
+    dim3 blockDim(512), gridDim(30);
+    histogram_shared_optimized<<<gridDim, blockDim,
+                       num_bins * sizeof(unsigned int)>>>(
+        input, bins, num_elements, num_bins);
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
   }
-
-  // Launch Kernel 2: histogram_reduce.
-  // This kernel reduces the partial histograms into the final histogram.
-  {
-      dim3 blockDim(512);
-      dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
-      histogram_reduce<<<gridDim, blockDim>>>(
-          partial_hist, bins, num_blocks, num_bins);
-      CUDA_CHECK(cudaGetLastError());
-      CUDA_CHECK(cudaDeviceSynchronize());
-  }
-
-  // Free the temporary partial histogram buffer.
-  CUDA_CHECK(cudaFree(partial_hist));
 
   // Make sure bin values are not too large
   {
