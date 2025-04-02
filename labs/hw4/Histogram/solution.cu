@@ -74,7 +74,7 @@ else if (kernel_version==2) {
   CUDA_CHECK(cudaMemset(bins, 0, num_bins * sizeof(unsigned int)));
   // Launch histogram kernel on the bins
   // Choose the number of blocks for the partial histogram kernel.
-  const unsigned int num_blocks = 30;
+  const unsigned int num_blocks = 128;
     
   // Allocate device memory for the partial histograms.
   unsigned int *partial_hist = nullptr;
