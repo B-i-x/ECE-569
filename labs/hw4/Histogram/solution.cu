@@ -74,71 +74,56 @@ void histogram(
  }
 
  else if (kernel_version == 2) {
-  // ----- Step 1: Prepare sorted input -----
-  // Compute padded length (next power-of-two)
-  unsigned int padLength = 1;
-  while (padLength < num_elements) {
-      padLength <<= 1;
-  }
-
-  // Allocate device memory for the sorted input
-  unsigned int *sortedInput;
-  CUDA_CHECK(cudaMalloc((void **)&sortedInput, padLength * sizeof(unsigned int)));
-
-  // Copy the original input into sortedInput
-  CUDA_CHECK(cudaMemcpy(sortedInput, input, num_elements * sizeof(unsigned int), cudaMemcpyDeviceToDevice));
-
-  // Pad the remaining elements with UINT_MAX so they sort to the end
-  if (padLength > num_elements) {
-      // Calculate number of bytes to pad
-      size_t padBytes = (padLength - num_elements) * sizeof(unsigned int);
-      // Create a host buffer filled with UINT_MAX_VAL
-      unsigned int *hostPad = (unsigned int *)malloc(padBytes);
-      for (unsigned int i = 0; i < (padLength - num_elements); i++) {
-          hostPad[i] = UINT_MAX_VAL;
-      }
-      CUDA_CHECK(cudaMemcpy(sortedInput + num_elements, hostPad, padBytes, cudaMemcpyHostToDevice));
-      free(hostPad);
-  }
-
-  // ----- Step 2: Sort the input using Bitonic Sort -----
-  int block_size = 512;
-  int grid_size = (padLength + block_size - 1) / block_size;
-  // Outer loop over subsequence sizes: k doubles each time.
-  for (unsigned int k = 2; k <= padLength; k <<= 1) {
-      // Inner loop: j starts at half of k and halves until 0.
-      for (unsigned int j = k >> 1; j > 0; j >>= 1) {
-          bitonic_sort_kernel<<<grid_size, block_size>>>(sortedInput, padLength, j, k);
-          CUDA_CHECK(cudaGetLastError());
-          CUDA_CHECK(cudaDeviceSynchronize());
-      }
-  }
-
-  // ----- Step 3: Compute Histogram from Sorted Input -----
-  // Zero out bins before computing histogram.
-  CUDA_CHECK(cudaMemset(bins, 0, num_bins * sizeof(unsigned int)));
-  {
-      // Launch the histogram_from_sorted kernel.
-      dim3 blockDim(512);
-      dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
-      // Note: Use num_elements (original count) for binary search boundaries,
-      // since padded values (UINT_MAX) are ignored for bins in [0, num_bins)
-      histogram_from_sorted<<<gridDim, blockDim>>>(sortedInput, bins, num_elements, num_bins);
-      CUDA_CHECK(cudaGetLastError());
-      CUDA_CHECK(cudaDeviceSynchronize());
-  }
-
-  // Free the temporary sorted input memory.
-  CUDA_CHECK(cudaFree(sortedInput));
-
-  // ----- Step 4: Clip bin values if necessary -----
-  {
-      dim3 blockDim(512);
-      dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
-      convert_kernel<<<gridDim, blockDim>>>(bins, num_bins);
-      CUDA_CHECK(cudaGetLastError());
-      CUDA_CHECK(cudaDeviceSynchronize());
-  }
+    // ---------- Step 1: Launch Partial Histogram Kernel ----------
+    // Zero out the global bins (final histogram) first.
+    CUDA_CHECK(cudaMemset(bins, 0, num_bins * sizeof(unsigned int)));
+    
+    // Choose the number of blocks for the partial histogram kernel.
+    // For example, if you have 30 blocks:
+    const unsigned int num_blocks = 30;
+    
+    // Allocate device memory for the partial histograms.
+    // Each block writes its own histogram of 'num_bins' entries.
+    unsigned int *partial_hist = nullptr;
+    size_t partial_hist_bytes = num_blocks * num_bins * sizeof(unsigned int);
+    CUDA_CHECK(cudaMalloc(&partial_hist, partial_hist_bytes));
+    
+    // Launch the partial histogram kernel.
+    {
+        // Use a block size (e.g., 512 threads per block).
+        dim3 blockDim(512);
+        // Grid size equals the number of blocks we want.
+        dim3 gridDim(num_blocks);
+        // Allocate shared memory equal to 'num_bins * sizeof(unsigned int)'.
+        histogram_partial<<<gridDim, blockDim, num_bins * sizeof(unsigned int)>>>(
+            input, partial_hist, num_elements, num_bins);
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaDeviceSynchronize());
+    }
+    
+    // ---------- Step 2: Launch Global Reduction Kernel ----------
+    {
+        // Each thread in this kernel will accumulate one bin.
+        dim3 blockDim(512);
+        // Compute grid dimensions to cover all bins.
+        dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
+        histogram_reduce<<<gridDim, blockDim>>>(
+            partial_hist, bins, num_blocks, num_bins);
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaDeviceSynchronize());
+    }
+    
+    // Free the temporary partial histogram buffer.
+    CUDA_CHECK(cudaFree(partial_hist));
+    
+    // ---------- Step 3: Clip Bin Values if Necessary ----------
+    {
+        dim3 blockDim(512);
+        dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
+        convert_kernel<<<gridDim, blockDim>>>(bins, num_bins);
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaDeviceSynchronize());
+    }
   }
 
 
