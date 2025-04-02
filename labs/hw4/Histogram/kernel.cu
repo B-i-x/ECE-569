@@ -95,10 +95,9 @@ __global__ void histogram_shared_optimized(
 
     // Calculate thread and grid dimensions for bucketing input
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int stride = gridDim.x * blockDim.x;
 
     // Coarsening Step: explicitly handle multiple input elements per thread
-    const unsigned int elements_per_thread = 8; // Tunable parameter
+    const unsigned int elements_per_thread = 128; // Tunable parameter
     unsigned int start = tid * elements_per_thread;
     unsigned int end = min(start + elements_per_thread, num_elements);
 
