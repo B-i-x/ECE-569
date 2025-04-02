@@ -82,48 +82,61 @@ __global__ void histogram_shared_kernel(
 // your method of optimization using shared memory 
 // include DETAILED comments describing your approach
 // for competition you need to include description of the idea
-__global__ void histogram_shared_optimized(
-    unsigned int *input, 
-    unsigned int *bins,
+// Kernel 1: Each block computes its own partial histogram in shared memory.
+__global__ void histogram_partial(
+    const unsigned int *input,
+    unsigned int *partial_hist, // each block writes its own histogram here
     unsigned int num_elements,
-    unsigned int num_bins) {
+    unsigned int num_bins)
+{
+    // Allocate shared memory for the block’s histogram
+    extern __shared__ unsigned int s_hist[];
 
-    // Allocate shared memory for the local histogram (one entry per bin)
-    extern __shared__ unsigned int shared_bins[];
-
-    // Initialize shared memory bins to zero using threads cooperatively
+    // Initialize shared memory histogram to zero cooperatively.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-    shared_bins[i] = 0;
+        s_hist[i] = 0;
     }
-
     __syncthreads();
 
-    // Calculate thread and grid dimensions for bucketing input
+    // Compute global thread ID and overall stride.
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int stride = gridDim.x * blockDim.x;
 
-    // Bucketing Step: populate local histogram in shared memory
+    // Each thread processes a subset of the input.
     for (unsigned int i = tid; i < num_elements; i += stride) {
-        unsigned int bin_idx = input[i];
-        if (bin_idx < num_bins) {
-            atomicAdd(&(shared_bins[bin_idx]), 1);
+        unsigned int bin = input[i];
+        if (bin < num_bins) {
+            // Update shared memory histogram using atomic operations.
+            atomicAdd(&s_hist[bin], 1);
         }
     }
-
     __syncthreads();
 
-    // Parallel Reduction Step: efficiently accumulate counts into global memory
-    // Each thread handles a portion of the bins, significantly reducing global memory atomic contention.
+    // Write the block’s partial histogram to global memory.
+    // Since each block writes to its own portion, no atomics are needed here.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        unsigned int bin_count = shared_bins[i];
-        if (bin_count > 0) {
-            atomicAdd(&(bins[i]), bin_count);
-        }
+        partial_hist[blockIdx.x * num_bins + i] = s_hist[i];
     }
-
-// No further synchronization needed since each thread safely updates global bins independently
 }
 
+// Kernel 2: Reduce the per-block histograms into the final histogram.
+__global__ void histogram_reduce(
+    const unsigned int *partial_hist, // array of partial histograms
+    unsigned int *bins,               // final output histogram
+    unsigned int num_blocks,
+    unsigned int num_bins)
+{
+    // Each thread is responsible for summing one bin.
+    unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
+    if (bin < num_bins) {
+        unsigned int sum = 0;
+        // Sum this bin over all block-level histograms.
+        for (unsigned int b = 0; b < num_blocks; b++) {
+            sum += partial_hist[b * num_bins + bin];
+        }
+        bins[bin] = sum;
+    }
+}
 
 
 // clipping function
