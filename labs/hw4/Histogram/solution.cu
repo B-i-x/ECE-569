@@ -21,9 +21,13 @@ inline void gpuAssert(cudaError_t code, const char *file, int line,
   }
 }
 
-void histogram(unsigned int *input, unsigned int *bins,
-               unsigned int num_elements, unsigned int num_bins, int kernel_version) {
-
+void histogram(
+  unsigned int *input, 
+  unsigned int *bins,
+  unsigned int num_elements, 
+  unsigned int num_bins, 
+  int kernel_version) 
+  {
 
  if (kernel_version == 0) {
   // zero out bins

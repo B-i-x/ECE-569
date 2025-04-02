@@ -37,12 +37,6 @@ __global__ void histogram_shared_kernel(
 
     extern __shared__ unsigned int shared_bins[];
 
-    // Initialize shared memory bins to zero
-    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        shared_bins[i] = 0;
-    }
-
-    __syncthreads();
 
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int stride = blockDim.x * gridDim.x;
@@ -80,11 +74,6 @@ __global__ void histogram_shared_optimized(
     {
     extern __shared__ unsigned int shared_bins[];
 
-    // Initialize shared memory histogram to zero
-    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        shared_bins[i] = 0;
-    }
-    __syncthreads();
 
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int total_threads = gridDim.x * blockDim.x;
