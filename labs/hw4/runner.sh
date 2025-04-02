@@ -24,7 +24,7 @@ base_path="."
 regex="Total compute time \\(ms\\) ([0-9.]+)"
 
 # Create a folder for the results (if it doesn't already exist).
-results_folder="results"
+results_folder="../results"
 mkdir -p "$results_folder"
 
 # Loop over each dataset.
@@ -60,7 +60,7 @@ do
         # Create the new kernel file name by appending the dataset id.
         new_kernel_file="${NEW_KERNEL_BASE_NAME}_${dataset}.cu"
         # Copy the kernel file to the results folder with the new name.
-        cp ../labs/hw4/Histogram/kernel.cu "${results_folder}/${new_kernel_file}"
+        cp ../labs/hw4/Histogram/kernel.cu "${results_folder}/kernels/${new_kernel_file}"
         # Append the dataset id, average time, and new kernel file name to the results file.
         echo "($dataset, $average, ${new_kernel_file})" >> "${results_folder}/results.txt"
     else
