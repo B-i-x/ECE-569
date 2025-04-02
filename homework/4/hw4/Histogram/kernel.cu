@@ -90,8 +90,13 @@ __global__ void histogram_shared_optimized(
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int stride = gridDim.x * blockDim.x;
 
-    // Bucketing Step: populate local histogram in padded shared memory
-    for (unsigned int i = tid; i < num_elements; i += stride) {
+    // Coarsening Step: explicitly handle multiple input elements per thread
+    const unsigned int elements_per_thread = 4; // Tunable parameter
+    unsigned int start = tid * elements_per_thread;
+    unsigned int end = min(start + elements_per_thread, num_elements);
+
+    // Populate local histogram in padded shared memory
+    for (unsigned int i = start; i < end; ++i) {
         unsigned int bin_idx = input[i];
         if (bin_idx < num_bins) {
             atomicAdd(&(shared_bins[bin_idx + (bin_idx / PADDING)]), 1);
@@ -110,6 +115,7 @@ __global__ void histogram_shared_optimized(
 
     // No further synchronization needed since each thread safely updates global bins independently
 }
+
 
 
 
