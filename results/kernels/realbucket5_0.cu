@@ -65,45 +65,42 @@ __global__ void histogram_shared_kernel(
 
 
 __global__ void histogram_shared_optimized(
-    const unsigned int *input, 
+    unsigned int *input, 
     unsigned int *bins,
     unsigned int num_elements,
-    unsigned int num_bins)
-{
+    unsigned int num_bins) {
+
     extern __shared__ unsigned int shared_bins[];
 
-    // Compute global thread index and total number of threads.
-    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int total_threads = gridDim.x * blockDim.x;
 
-    // Coarsening: each thread processes multiple elements.
-    // Tunable parameter: process 8 elements per thread.
-    const unsigned int elements_per_thread = 4; 
-    for (unsigned int base = tid * elements_per_thread; base < num_elements; base += total_threads * elements_per_thread) {
-        // Unroll the loop over the batch.
-        #pragma unroll
-        for (unsigned int j = 0; j < elements_per_thread; j++) {
-            unsigned int idx = base + j;
-            if (idx < num_elements) {
-                unsigned int bin_idx = input[idx];
-                if (bin_idx < num_bins) {
-                    atomicAdd(&shared_bins[bin_idx], 1);
-                }
-            }
+    // Calculate thread and grid dimensions for bucketing input
+    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    // Coarsening Step: explicitly handle multiple input elements per thread
+    const unsigned int elements_per_thread = 4; // Tunable parameter
+    unsigned int start = tid * elements_per_thread;
+    unsigned int end = min(start + elements_per_thread, num_elements);
+
+    // Populate local histogram in shared memory
+    for (unsigned int i = start; i < end; ++i) {
+        unsigned int bin_idx = input[i];
+        if (bin_idx < num_bins) {
+            atomicAdd(&(shared_bins[bin_idx]), 1);
         }
     }
+
     __syncthreads();
 
-    // Reduction Step: each thread writes its portion of the shared histogram to global memory.
+    // Reduction Step: accumulate counts from shared memory into global memory
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        unsigned int count = shared_bins[i];
-        // Only perform atomicAdd if there's something to add.
-        if (count > 0) {
-            atomicAdd(&bins[i], count);
+        unsigned int bin_count = shared_bins[i];
+        if (bin_count > 0) {
+            atomicAdd(&(bins[i]), bin_count);
         }
     }
-}
 
+    // No further synchronization needed since each thread safely updates global bins independently
+}
 
 
 // clipping function
