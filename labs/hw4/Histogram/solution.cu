@@ -133,7 +133,7 @@ void histogram(
 
   // ----- Step 4: Clip bin values if necessary -----
   {
-      dim3 blockDim(512);
+      dim3 blockDim(1024);
       dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
       convert_kernel<<<gridDim, blockDim>>>(bins, num_bins);
       CUDA_CHECK(cudaGetLastError());
