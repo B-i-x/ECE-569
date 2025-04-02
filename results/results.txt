@@ -5,3 +5,5 @@
 (0, .19836933333333333333, version1kernelclean_0.cu)
 (0, .19683722448979591836, masonversion_0.cu)
 (0, .19684800000000000000, firstgoodversion_0.cu)
+(0, .20909440000000000000, doublekernel_0.cu)
+(0, .20302080000000000000, doublekernelblock56_0.cu)
