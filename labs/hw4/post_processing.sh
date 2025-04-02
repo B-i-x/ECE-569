@@ -76,6 +76,8 @@ do
         # Form the new kernel file name using the dataset id.
         new_kernel_file="${NEW_KERNEL_BASE_NAME}_${dataset}.cu"
         cp ../labs/hw4/Histogram/kernel.cu "${results_folder}/kernels/${new_kernel_file}"
+        cp ../labs/hw4/Histogram/solution.cu "${results_folder}/solutions/solution_${new_kernel_file}"
+
         # Append dataset, average, and the new kernel file name to the results file.
         echo "($dataset, $average, ${new_kernel_file})" >> "${results_folder}/results.txt"
     else
