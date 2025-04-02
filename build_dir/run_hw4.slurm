@@ -50,7 +50,7 @@ count=0
 for j in ${PATHS[@]}
 do
    file=output$((count)).txt
-   /usr/bin/time ./Histogram_Solution -e $j/output.raw -i $j/input.raw 0 -t integral_vector > Histogram_output/$file
+   /usr/bin/time ./Histogram_Solution -e $j/output.raw -i $j/input.raw 1 -t integral_vector > Histogram_output/$file
  count=$((count+1))
 done
 
