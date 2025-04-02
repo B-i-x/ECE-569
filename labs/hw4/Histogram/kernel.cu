@@ -65,46 +65,102 @@ __global__ void histogram_shared_kernel(
 
 
 __global__ void histogram_shared_optimized(
-    const unsigned int *input, 
+    unsigned int *input, 
     unsigned int *bins,
     unsigned int num_elements,
-    unsigned int num_bins)
-{
-    extern __shared__ unsigned int shared_bins[];
+    unsigned int num_bins) {
 
+// Declare shared memory histogram.
+extern __shared__ unsigned int shared_bins[];
 
-    // Compute global thread index and total number of threads.
-    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int total_threads = gridDim.x * blockDim.x;
+// Initialize shared memory histogram bins to 0.
+for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
+    shared_bins[i] = 0;
+}
+__syncthreads();
 
-    // Coarsening: each thread processes multiple elements.
-    // Tunable parameter: process 8 elements per thread.
-    const unsigned int elements_per_thread = 4; 
-    for (unsigned int base = tid * elements_per_thread; base < num_elements; base += total_threads * elements_per_thread) {
-        // Unroll the loop over the batch.
-        #pragma unroll
-        for (unsigned int j = 0; j < elements_per_thread; j++) {
-            unsigned int idx = base + j;
-            if (idx < num_elements) {
-                unsigned int bin_idx = input[idx];
-                if (bin_idx < num_bins) {
-                    atomicAdd(&shared_bins[bin_idx], 1);
-                }
-            }
+// Determine global thread index and input range.
+unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+const unsigned int elements_per_thread = 4;  // Tunable parameter
+unsigned int start = tid * elements_per_thread;
+unsigned int end = min(start + elements_per_thread, num_elements);
+
+// Define a small register accumulation structure.
+// We use REG_SIZE slots. A slot holds a bin index and the count accumulated in that register.
+const int REG_SIZE = 4; // Tunable; must be small so it fits in registers.
+int reg_bins[REG_SIZE];
+unsigned int reg_counts[REG_SIZE];
+
+// Initialize register accumulation slots to a sentinel value (here -1).
+#pragma unroll
+for (int j = 0; j < REG_SIZE; j++) {
+    reg_bins[j] = -1;
+    reg_counts[j] = 0;
+}
+
+// Process the input elements assigned to this thread.
+for (unsigned int i = start; i < end; i++) {
+    unsigned int bin_idx = input[i];
+    if (bin_idx >= num_bins) continue;
+
+    bool found = false;
+    // Check if the current bin is already in the register array.
+    #pragma unroll
+    for (int j = 0; j < REG_SIZE; j++) {
+        if (reg_bins[j] == bin_idx) {
+            reg_counts[j]++;
+            found = true;
+            break;
         }
     }
-    __syncthreads();
-
-    // Reduction Step: each thread writes its portion of the shared histogram to global memory.
-    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        unsigned int count = shared_bins[i];
-        // Only perform atomicAdd if there's something to add.
-        if (count > 0) {
-            atomicAdd(&bins[i], count);
+    // If not found, try to find an empty slot.
+    if (!found) {
+        bool inserted = false;
+        #pragma unroll
+        for (int j = 0; j < REG_SIZE; j++) {
+            if (reg_bins[j] == -1) {
+                reg_bins[j] = bin_idx;
+                reg_counts[j] = 1;
+                inserted = true;
+                break;
+            }
+        }
+        // If no empty slot is available, flush the register accumulation to shared memory.
+        if (!inserted) {
+            #pragma unroll
+            for (int j = 0; j < REG_SIZE; j++) {
+                if (reg_bins[j] != -1) {
+                    atomicAdd(&(shared_bins[reg_bins[j]]), reg_counts[j]);
+                    // Reset the register slot.
+                    reg_bins[j] = -1;
+                    reg_counts[j] = 0;
+                }
+            }
+            // Insert the current bin into the first slot.
+            reg_bins[0] = bin_idx;
+            reg_counts[0] = 1;
         }
     }
 }
 
+// Flush any remaining register accumulators to shared memory.
+#pragma unroll
+for (int j = 0; j < REG_SIZE; j++) {
+    if (reg_bins[j] != -1) {
+        atomicAdd(&(shared_bins[reg_bins[j]]), reg_counts[j]);
+    }
+}
+__syncthreads();
+
+// Reduction Step: Each thread reduces a portion of the shared memory histogram into global memory.
+for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
+    unsigned int bin_count = shared_bins[i];
+    if (bin_count > 0) {
+        atomicAdd(&(bins[i]), bin_count);
+    }
+}
+
+}
 
 
 
