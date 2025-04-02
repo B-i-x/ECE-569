@@ -4,3 +4,4 @@
 (0, .25601920000000000000, version1kernel_0.cu)
 (0, .19836933333333333333, version1kernelclean_0.cu)
 (0, .19683722448979591836, masonversion_0.cu)
+(0, .19684800000000000000, firstgoodversion_0.cu)
