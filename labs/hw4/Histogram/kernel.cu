@@ -82,7 +82,9 @@ __global__ void histogram_shared_kernel(
 // your method of optimization using shared memory 
 // include DETAILED comments describing your approach
 // for competition you need to include description of the idea
-__global__ void histogram_shared_optimized(unsigned int *input, unsigned int *bins,
+__global__ void histogram_shared_optimized(
+    unsigned int *input, 
+    unsigned int *bins,
     unsigned int num_elements,
     unsigned int num_bins) {
 
