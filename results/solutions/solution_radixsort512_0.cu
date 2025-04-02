@@ -40,7 +40,7 @@ void radix_sort(unsigned int **d_in, unsigned int **d_temp, int n) {
   unsigned int *d_bucket_offsets;
   CUDA_CHECK(cudaMalloc((void**)&d_bucket_offsets, RADIX * sizeof(unsigned int)));
   
-  int blockSize = 128;
+  int blockSize = 256;
   int gridSize = (n + blockSize - 1) / blockSize;
   
   // We'll perform passes for each 8 bits (i.e., 4 passes for 32 bits).
