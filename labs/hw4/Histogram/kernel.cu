@@ -83,7 +83,7 @@ __global__ void histogram_shared_optimized(
     unsigned int total_threads = gridDim.x * blockDim.x;
 
     // Coarsening parameter: number of elements each thread processes per iteration.
-    const unsigned int elements_per_thread = 4;  // Tunable parameter
+    const unsigned int elements_per_thread = 8;  // Tunable parameter
 
     // Use a grid-stride loop to cover all elements.
     for (unsigned int index = tid * elements_per_thread; index < num_elements; index += total_threads * elements_per_thread) {

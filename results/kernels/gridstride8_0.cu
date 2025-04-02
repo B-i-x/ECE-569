@@ -1,3 +1,8 @@
+#include <limits>
+#define UINT_MAX_VAL 0xFFFFFFFF
+#define BITS_PER_PASS 8
+#define RADIX (1 << BITS_PER_PASS)  // 256
+#define MASK (RADIX - 1)            // 0xFF
 // version 0
 // global memory only interleaved version
 // include comments describing your approach
@@ -37,12 +42,6 @@ __global__ void histogram_shared_kernel(
 
     extern __shared__ unsigned int shared_bins[];
 
-    // Initialize shared memory bins to zero
-    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        shared_bins[i] = 0;
-    }
-
-    __syncthreads();
 
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned int stride = blockDim.x * gridDim.x;
@@ -64,14 +63,7 @@ __global__ void histogram_shared_kernel(
 }
 
 
-// version 2
-// your method of optimization using shared memory 
-// include DETAILED comments describing your approach
-// for competition you need to include description of the idea
-// where you borrowed the idea from, and how you implmented 
-// Version 2: Optimized Histogram Calculation using Shared Memory
-// Detailed Comments Describing the Optimization Approach:
-//
+
 __global__ void histogram_shared_optimized(
     unsigned int *input, 
     unsigned int *bins,
