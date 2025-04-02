@@ -23,12 +23,6 @@ else()
   find_package(CUDA)
 endif ()
 
-if (NOT DEFINED  TILE_WIDTH)
-  set(TILE_WIDTH 16)
-endif()
-
-add_definitions(-DTILE_WIDT=${TILE_WIDTH})
-
 # allow C99 for cmake versions less than 3.1
 macro(use_c99)
   if (CMAKE_VERSION VERSION_LESS "3.1")
@@ -117,26 +111,6 @@ macro(add_lab_solution NAME SOURCES)
 	endif(BUILD_SOLUTION)
 endmacro(add_lab_solution)
 
-## this code is for the tile stuff
-macro(add_tiled_lab_solution NAME SOURCES)
-  if (BUILD_SOLUTION)
-    if("${NAME}" STREQUAL "no_timer_util")
-      foreach(TILE_WIDTH_VAL 4 8 16 32)
-        # Create a unique target name for each tile width
-        set(target_name "${NAME}_Solution_tile${TILE_WIDTH_VAL}")
-        cuda_add_executable(${target_name} ${SOURCES})
-        # Add the TILE_WIDTH definition for this target
-        target_compile_definitions(${target_name} PRIVATE TILE_WIDTH=${TILE_WIDTH_VAL})
-        target_link_libraries(${target_name} ${WBLIB} ${LINK_LIBRARIES})
-      endforeach()
-    else()
-      # For other targets, simply build one executable as usual
-      cuda_add_executable(${NAME}_Solution ${SOURCES})
-      target_link_libraries(${NAME}_Solution ${WBLIB} ${LINK_LIBRARIES})
-    endif()
-  endif()
-endmacro(add_tiled_lab_solution)
-
 
 macro(add_lab_template NAME SOURCES)
     # template code is not meant to be compilable,
@@ -182,7 +156,4 @@ if (BUILD_LIBWB_LIBRARY)
 endif (BUILD_LIBWB_LIBRARY)
 
 
-include(hw3/sources.cmake)
-
-set(TILED_MATRIX_SOURCES /home/u20/aromerolozano/ece569/labs/hw3/TiledMatrixMultiplication/no_timer_util.cu)
-add_tiled_lab_solution(no_timer_util ${TILED_MATRIX_SOURCES})
+include(hw4/sources.cmake)
