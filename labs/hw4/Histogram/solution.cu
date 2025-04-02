@@ -102,7 +102,7 @@ void histogram(
   }
 
   // ----- Step 2: Sort the input using Bitonic Sort -----
-  int block_size = 256;
+  int block_size = 512; // Number of threads per block
   int grid_size = (padLength + block_size - 1) / block_size;
   // Outer loop over subsequence sizes: k doubles each time.
   for (unsigned int k = 2; k <= padLength; k <<= 1) {
@@ -119,7 +119,7 @@ void histogram(
   CUDA_CHECK(cudaMemset(bins, 0, num_bins * sizeof(unsigned int)));
   {
       // Launch the histogram_from_sorted kernel.
-      dim3 blockDim(256);
+      dim3 blockDim(512);
       dim3 gridDim((num_bins + blockDim.x - 1) / blockDim.x);
       // Note: Use num_elements (original count) for binary search boundaries,
       // since padded values (UINT_MAX) are ignored for bins in [0, num_bins)
