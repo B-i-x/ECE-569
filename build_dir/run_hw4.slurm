@@ -52,7 +52,7 @@ do
   for run in {1..10}
   do
      file=output${count}_run${run}.txt
-     /usr/bin/time ./Histogram_Solution -e $j/output.raw -i $j/input.raw 0 -t integral_vector > Histogram_output/$file
+     /usr/bin/time ./Histogram_Solution -e $j/output.raw -i $j/input.raw 2 -t integral_vector > Histogram_output/$file
   done
   count=$((count+1))
 done
