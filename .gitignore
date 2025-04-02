@@ -1,6 +1,7 @@
 Dataset/
 **.docx
 **.exp
+build_dir/Histogram_output
 # ======================================================
 # Build directories and output files
 # ======================================================
