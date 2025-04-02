@@ -35,12 +35,12 @@ hw_path=~aromerolozano/ece569/build_dir
 
 cd $hw_path
 ###
-PATHS[0]=$hw_path/Histogram/Dataset/0
-PATHS[1]=$hw_path/Histogram/Dataset/1
-PATHS[2]=$hw_path/Histogram/Dataset/2
-PATHS[3]=$hw_path/Histogram/Dataset/3
-PATHS[4]=$hw_path/Histogram/Dataset/4
-PATHS[5]=$hw_path/Histogram/Dataset/5
+#PATHS[0]=$hw_path/Histogram/Dataset/0
+#PATHS[1]=$hw_path/Histogram/Dataset/1
+#PATHS[2]=$hw_path/Histogram/Dataset/2
+#PATHS[3]=$hw_path/Histogram/Dataset/3
+#PATHS[4]=$hw_path/Histogram/Dataset/4
+#PATHS[5]=$hw_path/Histogram/Dataset/5
 PATHS[6]=$hw_path/Histogram/Dataset/6
 
 
