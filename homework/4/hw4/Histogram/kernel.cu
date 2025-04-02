@@ -70,12 +70,45 @@ __global__ void histogram_shared_kernel(
 // for competition you need to include description of the idea
 // where you borrowed the idea from, and how you implmented 
 __global__ void histogram_shared_optimized(unsigned int *input, unsigned int *bins,
-                                 unsigned int num_elements,
-                                 unsigned int num_bins) {
+    unsigned int num_elements,
+    unsigned int num_bins) {
 
-// insert your code here
+    // Allocate shared memory for the local histogram (one entry per bin)
+    extern __shared__ unsigned int shared_bins[];
 
+    // Initialize shared memory bins to zero using threads cooperatively
+    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
+    shared_bins[i] = 0;
+    }
+
+    __syncthreads();
+
+    // Calculate thread and grid dimensions for bucketing input
+    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int stride = gridDim.x * blockDim.x;
+
+    // Bucketing Step: populate local histogram in shared memory
+    for (unsigned int i = tid; i < num_elements; i += stride) {
+        unsigned int bin_idx = input[i];
+        if (bin_idx < num_bins) {
+            atomicAdd(&(shared_bins[bin_idx]), 1);
+        }
+    }
+
+    __syncthreads();
+
+    // Parallel Reduction Step: efficiently accumulate counts into global memory
+    // Each thread handles a portion of the bins, significantly reducing global memory atomic contention.
+    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
+        unsigned int bin_count = shared_bins[i];
+        if (bin_count > 0) {
+            atomicAdd(&(bins[i]), bin_count);
+        }
+    }
+
+// No further synchronization needed since each thread safely updates global bins independently
 }
+
 
 // clipping function
 // resets bins that have value larger than 127 to 127. 
