@@ -102,7 +102,7 @@ void histogram(
   }
 
   // ----- Step 2: Sort the input using Bitonic Sort -----
-  int block_size = 1024;
+  int block_size = 512;
   int grid_size = (padLength + block_size - 1) / block_size;
   // Outer loop over subsequence sizes: k doubles each time.
   for (unsigned int k = 2; k <= padLength; k <<= 1) {
