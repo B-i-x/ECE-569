@@ -1,17 +1,19 @@
 import os
 import re
 import numpy as np
+import sys
+
+# Usage example: python script.py outputs/histogram/v2/4/
+if len(sys.argv) != 2:
+    print("Usage: python script.py <base_path>")
+    sys.exit(1)
+
+base_path = sys.argv[1]
 
 # Define your parameters here
-VERSION_NUM = 2
-SUBVERSION_NUM = 2
 INITIAL_DATASET_INDEX = 0
 FINAL_DATASET_INDEX = 1
 RUN_NUM = 10
-
-base_path = f"outputs/histogram/v{VERSION_NUM}/{SUBVERSION_NUM}/"
-
-
 
 # Regular expression to match the compute time line
 compute_time_regex = re.compile(r"Total compute time \(ms\) ([0-9\.]+)")
@@ -35,7 +37,6 @@ for dataset in range(INITIAL_DATASET_INDEX, FINAL_DATASET_INDEX):
     average_time = np.mean(times)
     dataset_avg_times.append((dataset, average_time))
 
-    # print(times)
 # Print averaged times
 for dataset, avg_time in dataset_avg_times:
     print(f"Dataset {dataset}: Average Compute Time = {avg_time:.6f} ms")
