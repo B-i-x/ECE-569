@@ -71,121 +71,79 @@ __global__ void histogram_shared_kernel(
 // Version 2: Optimized Histogram Calculation using Shared Memory
 // Detailed Comments Describing the Optimization Approach:
 //
-__global__ void histogram_shared_optimized(
-    unsigned int *input, 
-    unsigned int *bins,
+// version 2
+// your method of optimization using shared memory 
+// include DETAILED comments describing your approach
+// for competition you need to include description of the idea
+// where you borrowed the idea from, and how you implmented 
+// Version 2: Optimized Histogram Calculation using Shared Memory
+// Detailed Comments Describing the Optimization Approach:
+//
+// Optimization strategy combines two key GPU parallel optimization techniques:
+// 1. **Shared Memory Histogram**: Local histogram creation in shared memory to minimize global atomic conflicts.
+// 2. **Coarsening**: Explicitly handling multiple input elements per thread to improve data locality and reduce overhead.
+//
+// The idea of thread coarsening is adapted from common GPU optimization techniques for parallel histogram computations described in CUDA programming best practices.
+
+// version 2
+// your method of optimization using shared memory 
+// include DETAILED comments describing your approach
+// for competition you need to include description of the idea
+// Kernel 1: Each block computes its own partial histogram in shared memory.
+__global__ void histogram_partial(
+    const unsigned int *input,
+    unsigned int *partial_hist, // each block writes its own histogram here
     unsigned int num_elements,
-    unsigned int num_bins) 
-    {
-    extern __shared__ unsigned int shared_bins[];
+    unsigned int num_bins)
+{
+    // Allocate shared memory for the block’s histogram
+    extern __shared__ unsigned int s_hist[];
 
-    // Calculate thread and grid dimensions for bucketing input
-    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
-    // Coarsening Step: explicitly handle multiple input elements per thread
-    const unsigned int elements_per_thread = 4; // Tunable parameter
-    unsigned int start = tid * elements_per_thread;
-    unsigned int end = min(start + elements_per_thread, num_elements);
-
-    // Populate local histogram in shared memory
-    for (unsigned int i = start; i < end; ++i) {
-        unsigned int bin_idx = input[i];
-        if (bin_idx < num_bins) {
-            atomicAdd(&(shared_bins[bin_idx]), 1);
-        }
+    // Initialize shared memory histogram to zero cooperatively.
+    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
+        s_hist[i] = 0;
     }
-
     __syncthreads();
 
-    // Reduction Step: accumulate counts from shared memory into global memory
+    // Compute global thread ID and overall stride.
+    unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    unsigned int stride = gridDim.x * blockDim.x;
+
+    // Each thread processes a subset of the input.
+    for (unsigned int i = tid; i < num_elements; i += stride) {
+        unsigned int bin = input[i];
+        if (bin < num_bins) {
+            // Update shared memory histogram using atomic operations.
+            atomicAdd(&s_hist[bin], 1);
+        }
+    }
+    __syncthreads();
+
+    // Write the block’s partial histogram to global memory.
+    // Since each block writes to its own portion, no atomics are needed here.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
-        unsigned int bin_count = shared_bins[i];
-        if (bin_count > 0) {
-            atomicAdd(&(bins[i]), bin_count);
-        }
-    }
-
-    // No further synchronization needed since each thread safely updates global bins independently
-}
-
-
-// -----------------------------------------------------------------
-// Bitonic Sort Kernel
-// This kernel performs one comparison-swap step for the bitonic sort.
-// It uses two parameters, 'j' and 'k', which control the current stage.
-// The array 'd_data' is assumed to have 'length' elements (a power of two).
-__global__ void bitonic_sort_kernel(unsigned int *d_data, int length, int j, int k) {
-    unsigned int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= length) return;
-
-    // Compute the partner index for this thread.
-    unsigned int ixj = idx ^ j;
-    if (ixj > idx && ixj < length) {
-        // For indices with bit (k) not set, sort in ascending order.
-        if ((idx & k) == 0) {
-            if (d_data[idx] > d_data[ixj]) {
-                unsigned int temp = d_data[idx];
-                d_data[idx] = d_data[ixj];
-                d_data[ixj] = temp;
-            }
-        }
-        // Otherwise, sort in descending order.
-        else {
-            if (d_data[idx] < d_data[ixj]) {
-                unsigned int temp = d_data[idx];
-                d_data[idx] = d_data[ixj];
-                d_data[ixj] = temp;
-            }
-        }
+        partial_hist[blockIdx.x * num_bins + i] = s_hist[i];
     }
 }
 
-// -----------------------------------------------------------------
-// Device functions: Binary search helpers for lower_bound and upper_bound.
-// These are used by the histogram_from_sorted kernel.
-__device__ unsigned int lower_bound(const unsigned int *data, unsigned int n, unsigned int key) {
-    unsigned int low = 0;
-    unsigned int high = n;
-    while (low < high) {
-        unsigned int mid = low + (high - low) / 2;
-        if (data[mid] < key)
-            low = mid + 1;
-        else
-            high = mid;
-    }
-    return low;
-}
-
-__device__ unsigned int upper_bound(const unsigned int *data, unsigned int n, unsigned int key) {
-    unsigned int low = 0;
-    unsigned int high = n;
-    while (low < high) {
-        unsigned int mid = low + (high - low) / 2;
-        if (data[mid] <= key)
-            low = mid + 1;
-        else
-            high = mid;
-    }
-    return low;
-}
-
-
-// -----------------------------------------------------------------
-// Histogram from Sorted Kernel
-// Each thread is responsible for one bin. It uses binary search (lower_bound and upper_bound)
-// on the sorted input to determine how many elements fall into its bin.
-__global__ void histogram_from_sorted(const unsigned int *sorted_input,
-                                        unsigned int *bins,
-                                        unsigned int num_elements,
-                                        unsigned int num_bins) {
+// Kernel 2: Reduce the per-block histograms into the final histogram.
+__global__ void histogram_reduce(
+    const unsigned int *partial_hist, // array of partial histograms
+    unsigned int *bins,               // final output histogram
+    unsigned int num_blocks,
+    unsigned int num_bins)
+{
+    // Each thread is responsible for summing one bin.
     unsigned int bin = blockIdx.x * blockDim.x + threadIdx.x;
     if (bin < num_bins) {
-         unsigned int lb = lower_bound(sorted_input, num_elements, bin);
-         unsigned int ub = upper_bound(sorted_input, num_elements, bin);
-         bins[bin] = ub - lb;
+        unsigned int sum = 0;
+        // Sum this bin over all block-level histograms.
+        for (unsigned int b = 0; b < num_blocks; b++) {
+            sum += partial_hist[b * num_bins + bin];
+        }
+        bins[bin] = sum;
     }
 }
-
 
 // clipping function
 // resets bins that have value larger than 127 to 127. 
