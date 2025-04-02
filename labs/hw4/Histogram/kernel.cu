@@ -97,7 +97,7 @@ __global__ void histogram_shared_optimized(
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
 
     // Coarsening Step: explicitly handle multiple input elements per thread
-    const unsigned int elements_per_thread = 128; // Tunable parameter
+    const unsigned int elements_per_thread = 16; // Tunable parameter
     unsigned int start = tid * elements_per_thread;
     unsigned int end = min(start + elements_per_thread, num_elements);
 
