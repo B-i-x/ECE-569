@@ -77,30 +77,31 @@ __global__ void histogram_shared_optimized(
 
     // Coarsening Step: explicitly handle multiple input elements per thread
     const unsigned int elements_per_thread = 4; // Tunable parameter
-    unsigned int start = tid * elements_per_thread;
-    unsigned int end = min(start + elements_per_thread, num_elements);
 
-    // Populate local histogram in shared memory
-    for (unsigned int i = start; i < end; ++i) {
-        unsigned int bin_idx = input[i];
-        if (bin_idx < num_bins) {
-            atomicAdd(&(shared_bins[bin_idx]), 1);
+    // Use a grid-stride loop to cover all input elements:
+    for (unsigned int base = tid * elements_per_thread; base < num_elements; base += total_threads * elements_per_thread) {
+        // Calculate the end index for this batch.
+        unsigned int end = base + elements_per_thread;
+        if (end > num_elements) end = num_elements;
+        // Process this batch.
+        for (unsigned int i = base; i < end; ++i) {
+            unsigned int bin_idx = input[i];
+            if (bin_idx < num_bins) {
+                atomicAdd(&(shared_bins[bin_idx]), 1);
+            }
         }
     }
-
     __syncthreads();
 
-    // Reduction Step: accumulate counts from shared memory into global memory
+    // Reduction Step: each thread reduces a portion of the shared histogram into global memory.
     for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
         unsigned int bin_count = shared_bins[i];
         if (bin_count > 0) {
             atomicAdd(&(bins[i]), bin_count);
         }
     }
-
-    // No further synchronization needed since each thread safely updates global bins independently
+    // No further synchronization is needed.
 }
-
 
 
 
