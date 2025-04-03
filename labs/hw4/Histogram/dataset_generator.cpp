@@ -52,7 +52,7 @@ static void create_dataset(int datasetNum, size_t input_length,
   unsigned int *input_data = generate_data(input_length, num_bins);
 
   if (datasetNum == 7) {
-    *input_data = generate_static_data(input_length, num_bins);
+    input_data = generate_static_data(input_length, num_bins);
   }
 
   unsigned int *output_data =
