@@ -24,7 +24,7 @@ static unsigned int *generate_data(size_t n, unsigned int num_bins) {
 static unsigned int *generate_static_data(size_t n, unsigned int num_bins) {
   unsigned int *data = (unsigned int *)malloc(sizeof(unsigned int) * n);
   for (unsigned int i = 0; i < n; i++) {
-    data[i] = 69;
+    data[i] = 69 % num_bins;
   }
   return data;
 }
@@ -54,7 +54,7 @@ static void create_dataset(int datasetNum, size_t input_length,
   if (datasetNum == 7) {
     *input_data = generate_static_data(input_length, num_bins);
   }
-  
+
   unsigned int *output_data =
       (unsigned int *)calloc(sizeof(unsigned int), num_bins);
 
