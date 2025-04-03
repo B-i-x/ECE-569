@@ -63,55 +63,44 @@ __global__ void histogram_shared_optimized(
     unsigned int num_elements,
     unsigned int num_bins) {
 
-    extern __shared__  unsigned int sdata[];
+    extern __shared__ unsigned int shared_bins[];
 
-    // Compute a 16-byte aligned pointer from sdata.
-    unsigned int *shared_bins = (unsigned int*)(((uintptr_t)sdata + 15) & ~(uintptr_t)15);
-
-    // Use a vectorized int4 pointer.
-    int4 *shared_bins_int = (int4 *)shared_bins;
-    unsigned int vec_length = num_bins / 4;  // each int4 covers 4 bins
-
-    // Initialize the shared memory to zero.
-    for (unsigned int i = threadIdx.x; i < vec_length; i += blockDim.x) {
-        shared_bins_int[i] = make_int4(0, 0, 0, 0);
+    // Initialize shared memory bins to zero cooperatively
+    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
+        shared_bins[i] = 0;
     }
+
     __syncthreads();
 
-    // Calculate global thread id and total number of threads.
+    // Calculate thread and grid dimensions for bucketing input
     unsigned int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    unsigned int total_threads = gridDim.x * blockDim.x;
-    const unsigned int elements_per_thread = 4; // Process 4 elements per iteration
 
-    // Coarsening Step: each thread processes multiple groups of elements.
-    for (unsigned int i = tid * elements_per_thread; i < num_elements; i += total_threads * elements_per_thread) {
-        unsigned int end = min(i + elements_per_thread, num_elements);
-        for (unsigned int j = i; j < end; j++) {
-            unsigned int bin_idx = input[j];
-            if (bin_idx < num_bins) {
-                atomicAdd(&(shared_bins[bin_idx]), 1);
-            }
+    // Coarsening Step: explicitly handle multiple input elements per thread
+    const unsigned int elements_per_thread = 4; // Tunable parameter
+    unsigned int start = tid * elements_per_thread;
+    unsigned int end = min(start + elements_per_thread, num_elements);
+
+    // Populate local histogram in shared memory
+    for (unsigned int i = start; i < end; ++i) {
+        unsigned int bin_idx = input[i];
+        if (bin_idx < num_bins) {
+            atomicAdd(&(shared_bins[bin_idx]), 1);
         }
     }
+
     __syncthreads();
 
-    // Reduction Step: accumulate counts from shared memory into global memory with loop unrolling.
-    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x * 4) {
-        unsigned int count0 = shared_bins[i];
-        unsigned int count1 = (i + blockDim.x < num_bins) ? shared_bins[i + blockDim.x] : 0;
-        unsigned int count2 = (i + 2 * blockDim.x < num_bins) ? shared_bins[i + 2 * blockDim.x] : 0;
-        unsigned int count3 = (i + 3 * blockDim.x < num_bins) ? shared_bins[i + 3 * blockDim.x] : 0;
-        
-        if (count0 > 0)
-            atomicAdd(&bins[i], count0);
-        if (count1 > 0)
-            atomicAdd(&bins[i + blockDim.x], count1);
-        if (count2 > 0)
-            atomicAdd(&bins[i + 2 * blockDim.x], count2);
-        if (count3 > 0)
-            atomicAdd(&bins[i + 3 * blockDim.x], count3);
+    // Reduction Step: accumulate counts from shared memory into global memory
+    for (unsigned int i = threadIdx.x; i < num_bins; i += blockDim.x) {
+        unsigned int bin_count = shared_bins[i];
+        if (bin_count > 0) {
+            atomicAdd(&(bins[i]), bin_count);
+        }
     }
+
+    // No further synchronization needed since each thread safely updates global bins independently
 }
+
 
 
 
