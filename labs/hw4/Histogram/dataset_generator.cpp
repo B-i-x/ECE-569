@@ -21,6 +21,14 @@ static unsigned int *generate_data(size_t n, unsigned int num_bins) {
   return data;
 }
 
+static unsigned int *generate_static_data(size_t n, unsigned int num_bins) {
+  unsigned int *data = (unsigned int *)malloc(sizeof(unsigned int) * n);
+  for (unsigned int i = 0; i < n; i++) {
+    data[i] = 69;
+  }
+  return data;
+}
+
 static void write_data(char *file_name, unsigned int *data, int num) {
   FILE *handle = fopen(file_name, "w");
   fprintf(handle, "%d", num);
@@ -40,7 +48,13 @@ static void create_dataset(int datasetNum, size_t input_length,
   char *input_file_name  = wbPath_join(dir_name, "input.raw");
   char *output_file_name = wbPath_join(dir_name, "output.raw");
 
+
   unsigned int *input_data = generate_data(input_length, num_bins);
+
+  if (datasetNum == 7) {
+    *input_data = generate_static_data(input_length, num_bins);
+  }
+  
   unsigned int *output_data =
       (unsigned int *)calloc(sizeof(unsigned int), num_bins);
 
@@ -63,5 +77,6 @@ int main() {
   create_dataset(4, 30240, NUM_BINS);
   create_dataset(5, 100000, NUM_BINS);
   create_dataset(6, 500000, NUM_BINS);
+  create_dataset(7, 500000, NUM_BINS);
   return 0;
 }
