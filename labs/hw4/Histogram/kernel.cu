@@ -59,7 +59,7 @@ __global__ void histogram_shared_kernel(unsigned int *input, unsigned int *bins,
 
 
 
-
+//final version 2
 __global__ void histogram_shared_optimized(
     unsigned int *input, 
     unsigned int *bins,
