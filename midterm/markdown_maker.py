@@ -154,7 +154,7 @@ def json_to_markdown(json_file, output_file, resources_dir="resources"):
 
 if __name__ == "__main__":
     # Example usage (adjust file paths as needed):
-    json_file = "midterm/questions.json"
-    output_file = "midterm/quiz.md"
-    resources_dir = "midterm/resources"
+    json_file = "questions.json"
+    output_file = "quiz.md"
+    resources_dir = "resources"
     json_to_markdown(json_file, output_file, resources_dir)
