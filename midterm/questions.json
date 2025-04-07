@@ -216,6 +216,73 @@
             "explanation": ""
         }
     },
+    "Quiz4" : {
+        "1" : {
+            "question": "We are to process a 600X800 (800 pixels in the x or horizontal direction, 600 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will be generated during the execution of the kernel?",
+            "options": {
+                "A": "38*8*50",
+                "B": "38*50*2",
+                "C": "None",
+                "D": "38*50",
+                "E": "37*16"
+            },
+            "answer": "A",
+            "professor_explanation": "We are to process a 600X800 (800 pixels in the x or horizontal direction, 600 pixels in the y or vertical direction) picture with the PictureKernel()",
+            "explanation": ""
+        },
+        "2" : {
+            "question": "We are to process a 600X800 (800 pixels in the x or horizontal direction, 600 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will have control divergence?",
+            "options": {
+                "A": "50*8",
+                "B": "50*8*38",
+                "C": "50*4",
+                "D": "50*4*38",
+                "E": "0"
+            },
+            "answer": "E",
+            "professor_explanation": "The size of the picture in the x dimension is a multiple of 16 so there is no block in the x direction that has any threads in the invalid range. The size of the picture in the y dimension is 37.5 times of 16. This means that the threads in the last block are divided into halves: 128 in the valid range and 128 in the invalid range. Since 128 is a multiple of 32, all warps will fall into either one or the other range. There is no control divergence.",
+            "explanation": ""
+        },
+        "3" : {
+            "question": "We are to process a 800X600 (600 pixels in the x or horizontal direction, 800 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will have control divergence?",
+            "options": {
+                "A": "37+50*8",
+                "B": "50*8",
+                "C": "38*16",
+                "D": "50*4",
+                "E": "0"
+            },
+            "answer": "B",
+            "professor_explanation": "The size of the picture in the x dimension is 600, which is 37.5 times of 16. This means that every warp processing the right edge of the picture will have control divergence. There are 50*8 such warps (50 blocks, 8 warps in each block). Since the size of the picture in the y dimension is a multiple of 16, there is no more divergence in the warps that process the lower edge of the picture",
+            "explanation": ""
+        },
+        "4" : {
+            "question": "We are to process a 799X600 (600 pixels in the x or horizontal direction, 799 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will have control divergence?",
+            "options": {
+                "A": "38*50*2",
+                "B": "38*8*50",
+                "C": "(37+50)*8",
+                "D": "0",
+                "E": "37+50*8"
+            },
+            "answer": "E",
+            "professor_explanation": "The number of warps processing the right edge remains 50*8, all of which will have control divergence. However, the warps processing the lower edge of the picture will also have control divergence. There are 38 of them. One of them is already counted for processing the right edge. So we have 50*8+38-1 = 50*8+37",
+            "explanation": ""
+        },
+        "5" : {
+            "question": "For the kernel with 16x16 thread blocks, assume that each SM has 16,384 registers and the kernel code uses 18 registers per thread. Assume each SM can execute 16 blocks with a maximum thread block size of 1024, and a maximum of 2048 threads.  How many threads can run on each SM?",
+            "options": {
+                "A": "8*256",
+                "B": "6*256",
+                "C": "4*256",
+                "D": "3*256",
+                "E": "2*256"
+            },
+            "answer": "D",
+            "professor_explanation": "256 threads/block. 256*18 = 4608 register per block .at most 3 thread blocks can be launched without exceeding the 16,384 register limit.             therefore 3*256 is the total number of threads per SM",
+            "explanation": ""
+        }
+    },
     "Quiz5" : {
         "1" : {
             "question": "Device with compute capability 1.0 can have 16KB of shared memory per SM, maximum of 8 resident blocks per SM and 512 threads per block. Device with compute capability 1.2 can have 48KB of shared memory per SM with maximum of 8 resident blocks per SM and 512 threads per block. Based on this information, indicate which of the following assignment per SM is not possible.",
