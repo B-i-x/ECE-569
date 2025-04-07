@@ -352,17 +352,80 @@
     },
     "Quiz6" : {
         "1" : {
-            "question": "Assume that the input array size has 6000 elements. Below is the ranking based on execution time of Versions 1, 2, 3,and 4 from fastest (left) to slowest (right). Which one is correct?",
+            "question": "Assume a memory system with 32-bit Double Data Rate DRAM interface operating at 3GHz with access latency of 300 cycles.  What is the throughput in atomic operations operations per second for the implementation given below? Assume that input data has even distribution over histogram bins.",
             "options": {
-                "A": "V3, V1, V2",
-                "B": "V1, V2, V3",
-                "C": "V2, V1, V3",
-                "D": "V1, V2, V3",
-                "E": "V3, V2, V1",
-                "F": "V1, V3, V2"
+                "A": "240 million operations per second",
+                "B": "1200 million operations per second",
+                "C": "120 million operations per second",
+                "D": "1200 million operations per second",
+                "E": "600 million operations per second"
             },
-            "answer": "F",
-            "professor_explanation": "",
+            "answer": "C",
+            "professor_explanation": "Solution: 600 cycles/atomic (read and write = 300+300)1/600 atomic/cycles x 3*10^9 cycles/sec = 5x10^6atomics/secondUniform distribution means all 24 bins will potentially be updated concurrentlyTherefore 5x10^6atomics/second *24bins = 120 Million atomics/second",
+            "explanation": ""
+        },
+        "2" : {
+            "question": "Assume a memory system with 32-bit Double Data Rate DRAM interface operating at 3GHz with access latency of 300 cycles.  For the following code, what is the throughput in terms of arithmetic operations per second? Assume that input data has even distribution over histogram bins",
+            "options": {
+                "A": "600 million operations per second",
+                "B": "1200 million operations per second",
+                "C": "120 million operations per second",
+                "D": "1200 million operations per second",
+                "E": "240 million operations per second"
+            },
+            "answer": "A",
+            "professor_explanation": "Solution: 600 cycles/atomic (read and write = 300+300)1/600 atomic/cycles x 3*10^9 cycles/sec = 5x10^6atomics/secondUniform distribution means all 24 bins will potentially be updated concurrentlyTherefore 5x10^6atomics/second *24bins = 120 Million atomics/secondFive operations per atomic instruction ( <, +, *, +, %)Total number of operations = 5 * 120 = 600 M ops/second",
+            "explanation": ""
+        },
+        "3" : {
+            "question": "To perform an atomic add operation to add the value of an integer variable Partial to a global memory integer variable Total. Which one of the following statements should be used?",
+            "options": {
+                "A": "atomicAdd(Total, 1);",
+                "B": "atomicAdd(&Total, &Partial);",
+                "C": "atomicAdd(Total, &Partial);",
+                "D": "atomicAdd(&Total, Partial);"
+            },
+            "answer": "D",
+            "professor_explanation": "The first argument should be a pointer to the variable to be updated and the second argument should be the variable whose value is to be added to the global variable.",
+            "explanation": ""
+        },
+        "4" : {
+            "question": "For the following reduction kernel version, if the block size is 1024, how many warps in a block will have divergence during the iteration where stride is equal to 1?",
+            "options": {
+                "A": "1",
+                "B": "0",
+                "C": "16",
+                "D": "32",
+                "E": "8"
+            },
+            "answer": "D",
+            "professor_explanation": "During the first iteration, even index threads are active. There is control divergence in all the warps. Thread block size is 1024, there are 32 warps",
+            "explanation": ""
+        },
+        "5" : {
+            "question": "For the following reduction kernel version, if the block size is 1024, how many warps in a block will have divergence during the iteration where stride is equal to 64?",
+            "options": {
+                "A": "1",
+                "B": "32",
+                "C": "8",
+                "D": "16",
+                "E": "0"
+            },
+            "answer": "C",
+            "professor_explanation": "threads 0, 128, 256,... participate.In warp 0: 0-31 thread 0 participates other 31 threads don’t participate, divergingIn warp 1: 32-63 no thread participates, similar with 64-95, 96-127Total of 8 warps diverge among 1024 threads",
+            "explanation": ""
+        },
+        "6" : {
+            "question": "For the following revised reduction kernel, if the block size is 1024, how many warps will have divergence during the iteration where stride is equal to 16. Please go over the kernel carefully as it is slightly different from the previous problem?",
+            "options": {
+                "A": "1",
+                "B": "16",
+                "C": "0",
+                "D": "32",
+                "E": "8"
+            },
+            "answer": "A",
+            "professor_explanation": "n each iteration, there are 2*stride consecutive active threads. During the iteration where stride is 16, there are 32 consecutive active threads, all in the same warp. These two warps will have threads all participating in computation. Remaining threads 32 to 1023 will not participate. So there is no warp divergence",
             "explanation": ""
         }
     },
