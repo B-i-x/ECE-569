@@ -1,13 +1,52 @@
 {
-    "1.1" : {
-        "question": "If we want to allocate an array of v integer elements in CUDA device global memory, what would be an appropriate expression for the second argument of the cudaMalloc() call?",
-        "options": {
-            "A": "n * sizeof(int)",
-            "B": "n",
-            "C": "v",
-            "D": "v * sizeof(int)"
+    "Quiz1" : {
+        "1" : {
+            "question": "If we want to allocate an array of v integer elements in CUDA device global memory, what would be an appropriate expression for the second argument of the cudaMalloc() call?",
+            "options": {
+                "A": "n * sizeof(int)",
+                "B": "n",
+                "C": "v",
+                "D": "v * sizeof(int)"
+            },
+            "answer": "D",
+            "explanation": ""
         },
-        "answer": "D",
-        "explanation": "API call"
+        "2" : {
+            "question": "If we want to allocate an array of n floating-point elements and have a floating-point pointer variable d_A to point to the allocated memory, what would be an appropriate expression for the first argument of the cudaMalloc() call?",
+            "options": {
+                "A": "(void *)d_A",
+                "B": "n",
+                "C": "(void **)d_A",
+                "D": "*d_A"
+            },
+            "answer": "C",
+            "professor_explanation": "&d_A is pointer to a pointer of float. To convert it to a generic pointer required by cudaMalloc() should use (void **) to cast it to a generic double-level pointer",
+            "explanation": ""
+        },
+        "3" : {
+            "question": "If we want to copy 3000 bytes of data from host array h_A (h_A is a pointer to element 0 of the source array) to device array d_A (d_A is a pointer to element 0 of the destination array), what would be an appropriate API call for this in CUDA?",
+            "options": {
+                "A": "cudaMemcpy(h_A, d_A, 3000, cudaMemcpyDeviceTHost)",
+                "B": "cudaMemcpy(3000,d_A,h_A, cudaMemcpyHostToDevice)",
+                "C": "cudaMemcpy(3000,h_A,d_A, cudaMemcpyHostToDevice)",
+                "D": "cudaMemcpy(d_A, h_A, 3000, cudaMemcpyHostToDevice)"
+            },
+            "answer": "D",
+            "professor_explanation": "",
+            "explanation": ""
+        },
+        "4" : {
+            "questions": "How would one declare a variable err that can appropriately receive returned value of a CUDA API call?",
+            "options": {
+                "A": "cudaError_t err;",
+                "B": "cudaError err;",
+                "C": "int err;",
+                "D": "cudaSuccess_t err;"
+            },
+            "answer": "A",
+            "professor_explanation": "",
+            "explanation": ""
+        }
     }
+
 }
