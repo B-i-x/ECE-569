@@ -108,6 +108,8 @@
 
 **Question:** We want to use each thread to calculate two output elements of a vector addition. Each thread block processes 2*blockDim.x consecutive elements that form two sections. All threads in each block will first process a section, each processing one element. They will then all move to the next section, again each processing one element. Assume that variable i should be the index for the first element to be processed by a thread. What would be the expression for mapping the thread/block indices to data index of the first element? Example thread to data mapping is shown below with thread 0 in block 0 operating on two array elements indexed as 0 and 4 and thread 1 in the same block operating on elements indexed as 1 and 5. Stride amount is the block size of 4 in this example.
 
+![Resource image](resources\Quiz2-3-question.png)
+
 **Options:**
 - **A:** i=blockIdx.x*blockDim.x*2 + threadIdx.x;
 - **B:** i=(blockIdx.x*blockDim.x + threadIdx.x)*2;
@@ -216,6 +218,8 @@
 
 **Professor Explanation:** there are 20 memory accesses totaling 80 Bytes. there are 96 FP operations. Therefore kernel has 80/96 = 0.833 Bytes per floating point operation. When you multiply this number with the GFLOPS number we find the memory bandwidth required to achieve peak throughput.  If this value exceeds the memory bandwidth than we know that memory can not satisfy the memory demand, therefore configuration is memory bound.
 
+![Resource image](resources\Quiz3-5-professor_explanation.png)
+
 ---
 
 ## Question 6
@@ -254,6 +258,46 @@
 
 **Question:** Assume that the input array size has 6000 elements. Below is the ranking based on execution time of Versions 1, 2, 3,and 4 from fastest (left) to slowest (right). Which one is correct?
 
+```cuda
+//Version-1) kernel_1t1e: each thread produces one output matrix using vertical and horizontal position as index
+
+__global__ void kernel_1t1e(
+    float *A, float *B, float *C, unsigned long WIDTH) 
+    {
+        int rowID = threadIdx.y + blockIdx.y * blockDim.y;
+        int colID = threadIdx.x + blockIdx.x * blockDim.x;
+        int elemID;
+        if(rowID < WIDTH && colID < WIDTH){                           
+            elemID = colID + rowID * WIDTH;
+            C[elemID] = A[elemID] + B[elemID];
+            }
+    }
+//Version-2) kernel_1t1r: each thread produces 1 output row using horizontal position as index
+__global__ void kernel_1t1r(
+    float *A, float *B, float *C, unsigned long WIDTH)
+    {              
+        int rowID = threadIdx.x + blockIdx.x * blockDim.x;
+
+        if(rowID < WIDTH) {                           
+            for(int i = 0; i<WIDTH;i++) {
+                C[i + rowID*WIDTH] = A[i + rowID*WIDTH] + B[i + rowID*WIDTH];
+            }
+        }
+    }
+
+//Version-3) kernel_1t1c: each thread produces 1 output column using horizontal position as index
+__global__ void kernel_1t1c(
+    float *A, float *B, float *C, unsigned long WIDTH) 
+    {              
+        int colID = threadIdx.x + blockIdx.x * blockDim.x; // Row address
+            if(colID < WIDTH) {
+                for(int i = 0; i<WIDTH; i++){
+                    C[colID + i*WIDTH] = A[colID + i*WIDTH] + B[colID + i*WIDTH];                         
+                }
+            }
+    }
+```
+
 **Options:**
 - **A:** V3, V1, V2
 - **B:** V1, V2, V3
@@ -272,6 +316,18 @@
 
 **Question:** We are to process a 600X800 (800 pixels in the x or horizontal direction, 600 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will be generated during the execution of the kernel?
 
+```cuda
+__global__ void PictureKernel(
+    float* d_Pin, float* d_Pout, int n, int m) 
+    {  // Calculate the row # of the d_Pin and d_Pout element to process
+    int Row = blockIdx.y*blockDim.y + threadIdx.y;  // Calculate the column # of the d_Pin and d_Pout element to process
+    int Col = blockIdx.x*blockDim.x + threadIdx.x;  // each thread computes one element of d_Pout if in range  
+    if ((Row < m) && (Col < n)) {
+        d_Pout[Row*n+Col] = 2*d_Pin[Row*n+Col];  
+    }
+}
+```
+
 **Options:**
 - **A:** 38*8*50
 - **B:** 38*50*2
@@ -288,6 +344,18 @@
 ## Question 2
 
 **Question:** We are to process a 600X800 (800 pixels in the x or horizontal direction, 600 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will have control divergence?
+
+```cuda
+__global__ void PictureKernel(
+    float* d_Pin, float* d_Pout, int n, int m) 
+    {  // Calculate the row # of the d_Pin and d_Pout element to process
+    int Row = blockIdx.y*blockDim.y + threadIdx.y;  // Calculate the column # of the d_Pin and d_Pout element to process
+    int Col = blockIdx.x*blockDim.x + threadIdx.x;  // each thread computes one element of d_Pout if in range  
+    if ((Row < m) && (Col < n)) {
+        d_Pout[Row*n+Col] = 2*d_Pin[Row*n+Col];  
+    }
+}
+```
 
 **Options:**
 - **A:** 50*8
@@ -306,6 +374,18 @@
 
 **Question:** We are to process a 800X600 (600 pixels in the x or horizontal direction, 800 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will have control divergence?
 
+```cuda
+__global__ void PictureKernel(
+    float* d_Pin, float* d_Pout, int n, int m) 
+    {  // Calculate the row # of the d_Pin and d_Pout element to process
+    int Row = blockIdx.y*blockDim.y + threadIdx.y;  // Calculate the column # of the d_Pin and d_Pout element to process
+    int Col = blockIdx.x*blockDim.x + threadIdx.x;  // each thread computes one element of d_Pout if in range  
+    if ((Row < m) && (Col < n)) {
+        d_Pout[Row*n+Col] = 2*d_Pin[Row*n+Col];  
+    }
+}
+```
+
 **Options:**
 - **A:** 37+50*8
 - **B:** 50*8
@@ -322,6 +402,18 @@
 ## Question 4
 
 **Question:** We are to process a 799X600 (600 pixels in the x or horizontal direction, 799 pixels in the y or vertical direction) picture with the PictureKernel(). Assume that we decided to use a grid of 16X16 blocks. That is, each block is organized as a 2D 16X16 array of threads. How many warps will have control divergence?
+
+```cuda
+__global__ void PictureKernel(
+    float* d_Pin, float* d_Pout, int n, int m) 
+    {  // Calculate the row # of the d_Pin and d_Pout element to process
+    int Row = blockIdx.y*blockDim.y + threadIdx.y;  // Calculate the column # of the d_Pin and d_Pout element to process
+    int Col = blockIdx.x*blockDim.x + threadIdx.x;  // each thread computes one element of d_Pout if in range  
+    if ((Row < m) && (Col < n)) {
+        d_Pout[Row*n+Col] = 2*d_Pin[Row*n+Col];  
+    }
+}
+```
 
 **Options:**
 - **A:** 38*50*2
@@ -358,6 +450,21 @@
 ## Question 1
 
 **Question:** Assume the following simple matrix multiplication kernel. Which of the following is true?
+
+```cuda
+__global__ void MatrixMulKernel(float* M, float* N, float* P, int Width) {
+    int Row = blockIdx.y * blockDim.y + threadIdx.y;
+    int Col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ((Row < Width) && (Col < Width)) {
+        float Pvalue = 0;
+        for (int k = 0; k < Width; ++k) {
+            Pvalue += M[Row * Width + k] * N[k * Width + Col];
+        }
+        P[Row * Width + Col] = Pvalue;
+    }
+}
+```
 
 **Options:**
 - **A:** M is coalesced but N and P are not
@@ -410,6 +517,21 @@
 
 **Question:** If we launch the simple matrix multiplication kernel  with a block size of 16X16 on a 1017X1017 matrix, how many warps will have control divergence?
 
+```cuda
+__global__ void MatrixMulKernel(float* M, float* N, float* P, int Width) {
+    int Row = blockIdx.y * blockDim.y + threadIdx.y;
+    int Col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if ((Row < Width) && (Col < Width)) {
+        float Pvalue = 0;
+        for (int k = 0; k < Width; ++k) {
+            Pvalue += M[Row * Width + k] * N[k * Width + Col];
+        }
+        P[Row * Width + Col] = Pvalue;
+    }
+}
+```
+
 **Options:**
 - **A:** 504
 - **B:** 508
@@ -446,6 +568,31 @@
 
 **Question:** Assume a memory system with 32-bit Double Data Rate DRAM interface operating at 3GHz with access latency of 300 cycles.  What is the throughput in atomic operations operations per second for the implementation given below? Assume that input data has even distribution over histogram bins.
 
+```cuda
+__global__ void histo_kernel(unsigned int *buffer, long size, unsigned int *histo) {
+    __shared__ unsigned int histo_private[24];
+
+    // Initialize shared memory
+    if (threadIdx.x < 24) {
+        histo_private[threadIdx.x] = 0;
+    }
+    __syncthreads();
+
+    // Compute histogram
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    for (int k = i; k < size; k += blockDim.x * gridDim.x) {
+        int position = buffer[k] % 24;
+        atomicAdd(&histo_private[position], 1);
+    }
+    __syncthreads();
+
+    // Write back to global memory
+    if (threadIdx.x < 24) {
+        atomicAdd(&histo[threadIdx.x], histo_private[threadIdx.x]);
+    }
+}
+```
+
 **Options:**
 - **A:** 240 million operations per second
 - **B:** 1200 million operations per second
@@ -462,6 +609,31 @@
 ## Question 2
 
 **Question:** Assume a memory system with 32-bit Double Data Rate DRAM interface operating at 3GHz with access latency of 300 cycles.  For the following code, what is the throughput in terms of arithmetic operations per second? Assume that input data has even distribution over histogram bins
+
+```cuda
+__global__ void histo_kernel(unsigned int *buffer, long size, unsigned int *histo) {
+    __shared__ unsigned int histo_private[24];
+
+    // Initialize shared memory
+    if (threadIdx.x < 24) {
+        histo_private[threadIdx.x] = 0;
+    }
+    __syncthreads();
+
+    // Compute histogram
+    int i = threadIdx.x + blockIdx.x * blockDim.x;
+    for (int k = i; k < size; k += blockDim.x * gridDim.x) {
+        int position = buffer[k] % 24;
+        atomicAdd(&histo_private[position], 1);
+    }
+    __syncthreads();
+
+    // Write back to global memory
+    if (threadIdx.x < 24) {
+        atomicAdd(&histo[threadIdx.x], histo_private[threadIdx.x]);
+    }
+}
+```
 
 **Options:**
 - **A:** 600 million operations per second
@@ -496,6 +668,30 @@
 
 **Question:** For the following reduction kernel version, if the block size is 1024, how many warps in a block will have divergence during the iteration where stride is equal to 1?
 
+```cuda
+unsigned int t = threadIdx.x;
+unsigned int start = 2 * blockIdx.x * blockDim.x;
+
+partialSum[t] = input[start + t];
+partialSum[blockDim.x + t] = input[start + blockDim.x + t];
+
+for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) {
+ 
+
+    atomicAdd(Total, 1);
+    atomicAdd(&Total, &Partial);
+    atomicAdd(Total, &Partial);
+    atomicAdd(&Total, Partial);
+
+
+    __syncthreads();
+
+    if (t % (2 * stride) == 0) {
+        partialSum[2 * t] += partialSum[2 * t + stride];
+    }
+}
+```
+
 **Options:**
 - **A:** 1
 - **B:** 0
@@ -513,6 +709,30 @@
 
 **Question:** For the following reduction kernel version, if the block size is 1024, how many warps in a block will have divergence during the iteration where stride is equal to 64?
 
+```cuda
+unsigned int t = threadIdx.x;
+unsigned int start = 2 * blockIdx.x * blockDim.x;
+
+partialSum[t] = input[start + t];
+partialSum[blockDim.x + t] = input[start + blockDim.x + t];
+
+for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) {
+ 
+
+    atomicAdd(Total, 1);
+    atomicAdd(&Total, &Partial);
+    atomicAdd(Total, &Partial);
+    atomicAdd(&Total, Partial);
+
+
+    __syncthreads();
+
+    if (t % (2 * stride) == 0) {
+        partialSum[2 * t] += partialSum[2 * t + stride];
+    }
+}
+```
+
 **Options:**
 - **A:** 1
 - **B:** 32
@@ -529,6 +749,21 @@
 ## Question 6
 
 **Question:** For the following revised reduction kernel, if the block size is 1024, how many warps will have divergence during the iteration where stride is equal to 16. Please go over the kernel carefully as it is slightly different from the previous problem?
+
+```cuda
+unsigned int t = threadIdx.x;
+unsigned int start = 2 * blockIdx.x * blockDim.x;
+
+partialSum[t] = input[start + t];
+partialSum[blockDim.x + t] = input[start + blockDim.x + t];
+
+for (unsigned int stride = blockDim.x; stride > 0; stride /= 2) {
+    __syncthreads();
+    if (t < 2 * stride) {
+        partialSum[t] += partialSum[t + stride];
+    }
+}
+```
 
 **Options:**
 - **A:** 1
@@ -549,6 +784,32 @@
 
 **Question:** Assume that we are to process 512 elements with the kernel given below, and kernel is launched with 512 threads/block. Which expression below gives the closest approximation for the number of add operations performed only over the input data (excluding peripheral additions used for thread index calculations) with this kernel launch?
 
+```cuda
+__global__ void my_kernel(float *X, float *Y, int InputSize) {
+    __shared__ float XY[512];
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < InputSize) {
+        XY[threadIdx.x] = X[i];
+    }
+
+    for (unsigned int stride = 1; stride <= threadIdx.x; stride *= 2) {
+        __syncthreads();
+        float in1 = XY[threadIdx.x - stride];
+        __syncthreads();
+        XY[threadIdx.x] += in1;
+    }
+
+    __syncthreads();
+
+    if (i < InputSize) {
+        Y[i] = XY[threadIdx.x];
+    }
+}
+
+
+```
+
 **Options:**
 - **A:** 2*(512-1)
 - **B:** 9
@@ -565,6 +826,32 @@
 ## Question 2
 
 **Question:** Assume that we are to process  4096 elements with the kernel given below, and kernel is launched with a grid configuration composed of 8 blocks and 512 threads/block. Assume that device has 12 SMs.  Each SM can launch up to 16 thread blocks. Maximum number of threads per SM is 2048. Which expression below gives the closest approximation for the number of add operations performed only over the input data (excluding peripheral additions used for thread index calculations) with this kernel launch?
+
+```cuda
+__global__ void my_kernel(float *X, float *Y, int InputSize) {
+    __shared__ float XY[512];
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < InputSize) {
+        XY[threadIdx.x] = X[i];
+    }
+
+    for (unsigned int stride = 1; stride <= threadIdx.x; stride *= 2) {
+        __syncthreads();
+        float in1 = XY[threadIdx.x - stride];
+        __syncthreads();
+        XY[threadIdx.x] += in1;
+    }
+
+    __syncthreads();
+
+    if (i < InputSize) {
+        Y[i] = XY[threadIdx.x];
+    }
+}
+
+
+```
 
 **Options:**
 - **A:** 8*9
@@ -583,6 +870,51 @@
 
 **Question:** Based on the way my_kernel is launched, what is the total number of warps that will have control divergence during the loop execution when stride is 8? Assume that device has 16 SMs.  Each SM can launch up to 16 thread blocks. Maximum number of threads per SM is 2048.
 
+```cuda
+#define numElements 32 * (1 << 10)
+#define BLOCK_SIZE 512
+
+__global__ void my_kernel(float *X, float *Y, int InputSize) {
+    __shared__ float XY[BLOCK_SIZE];
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < InputSize) {
+        XY[threadIdx.x] = X[i];
+    }
+
+    for (unsigned int stride = 1; stride <= threadIdx.x; stride *= 2) {
+        __syncthreads();
+        float in1 = XY[threadIdx.x - stride];
+        __syncthreads();
+        XY[threadIdx.x] += in1;
+    }
+
+    __syncthreads();
+
+    if (i < InputSize) {
+        Y[i] = XY[threadIdx.x];
+    }
+}
+
+int main(int argc, char **argv) {
+    // Declarations related to the question are provided here.
+    // Assume that all other declarations such as pointers
+    // on host and device side are defined
+    // and memory on host and device are allocated.
+
+    int numBlocks = ceil((float)numElements / BLOCK_SIZE);
+    dim3 dimGrid(numBlocks, 1, 1);
+    dim3 dimBlock(BLOCK_SIZE, 1, 1);
+
+    // Launch the kernel
+    // input is the pointer to the input array in the global memory,
+    // and output is the pointer to the output array in the
+    // global memory generated by the kernel
+    my_kernel<<<dimGrid, dimBlock>>>(input, output, numElements);
+    cudaDeviceSynchronize();
+}
+```
+
 **Options:**
 - **A:** 0
 - **B:** 1
@@ -599,6 +931,51 @@
 ## Question 4
 
 **Question:** Based on the way my_kernel is launched,  what is the total number of warps that will have control divergence during the loop execution when stride is 128? Assume that device has 12 SMs.  Each SM can launch up to 16 thread blocks. Maximum number of threads per SM is 2048.
+
+```cuda
+#define numElements 32 * (1 << 10)
+#define BLOCK_SIZE 512
+
+__global__ void my_kernel(float *X, float *Y, int InputSize) {
+    __shared__ float XY[BLOCK_SIZE];
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < InputSize) {
+        XY[threadIdx.x] = X[i];
+    }
+
+    for (unsigned int stride = 1; stride <= threadIdx.x; stride *= 2) {
+        __syncthreads();
+        float in1 = XY[threadIdx.x - stride];
+        __syncthreads();
+        XY[threadIdx.x] += in1;
+    }
+
+    __syncthreads();
+
+    if (i < InputSize) {
+        Y[i] = XY[threadIdx.x];
+    }
+}
+
+int main(int argc, char **argv) {
+    // Declarations related to the question are provided here.
+    // Assume that all other declarations such as pointers
+    // on host and device side are defined
+    // and memory on host and device are allocated.
+
+    int numBlocks = ceil((float)numElements / BLOCK_SIZE);
+    dim3 dimGrid(numBlocks, 1, 1);
+    dim3 dimBlock(BLOCK_SIZE, 1, 1);
+
+    // Launch the kernel
+    // input is the pointer to the input array in the global memory,
+    // and output is the pointer to the output array in the
+    // global memory generated by the kernel
+    my_kernel<<<dimGrid, dimBlock>>>(input, output, numElements);
+    cudaDeviceSynchronize();
+}
+```
 
 **Options:**
 - **A:** 0
@@ -617,12 +994,61 @@
 
 **Question:** An exclusive scan operation is similar to an inclusive operation, except that the exclusive scan operation on the input array [3 1 7 0 4 1 6 3] would return [0 3 4 11 11 15 16 22]. Below is the C code for the serial inclusive scan. Which modification on the for-loop will turn the code given above to exclusive scan?
 
+```cuda
+int main(int argc, char **argv) {
+    const int ARRAY_SIZE = 8;
+    int acc = 0;
+    int out[ARRAY_SIZE];
+    int elements[] = {0, 3, 4, 11, 11, 15, 16, 22};
+
+    for (int i = 0; i < ARRAY_SIZE; i++) {
+        acc = acc + elements[i];
+        out[i] = acc;
+    }
+}
+```
+
 **Options:**
 - **A:** 
+```c
+for (int i = 1; i < ARRAY_SIZE; i++) {
+    acc = acc + elements[i - 1];
+    out[i + 1] = acc;
+}
+```
+
 - **B:** 
+```c
+for (int i = 1; i < ARRAY_SIZE; i++) {
+    acc = acc + elements[i - 1];
+    out[i - 1] = acc;
+}
+```
+
 - **C:** 
+```c
+for (int i = 1; i < ARRAY_SIZE; i++) {
+    acc = acc + elements[i + 1];
+    out[i + 1] = acc;
+}
+```
+
 - **D:** 
+```c
+for (int i = 1; i < ARRAY_SIZE; i++) {
+    acc = acc + elements[i];
+    out[i] = acc;
+}
+```
+
 - **E:** 
+```c
+for (int i = 1; i < ARRAY_SIZE; i++) {
+    out[i] = acc;
+    acc = acc + elements[i];
+}
+```
+
 
 **Answer:** E
 
