@@ -285,28 +285,83 @@
     },
     "Quiz5" : {
         "1" : {
-            "question": "Device with compute capability 1.0 can have 16KB of shared memory per SM, maximum of 8 resident blocks per SM and 512 threads per block. Device with compute capability 1.2 can have 48KB of shared memory per SM with maximum of 8 resident blocks per SM and 512 threads per block. Based on this information, indicate which of the following assignment per SM is not possible.",
+            "question": "Assume the following simple matrix multiplication kernel. Which of the following is true?",
             "options": {
-                "A": "7 blocks with 128 threads each and 16B shared memory per thread block on a device with compute capability 1.0",
-                "B": "8 blocks with 512 threads each and 64B shared memory per thread block on a device with compute capability 1.2",
-                "C": "All of the given options are possible",
-                "D": "4 blocks with 128 threads each and 32B shared memory per thread block on a device with compute capability 1.0"
+                "A": "M is coalesced but N and P are not",
+                "B": "M and N are coalesced, but P is not",
+                "C": "M and P are coalesced but N is not",
+                "D": "M, N and P are all coalesced",
+                "E": "N and P are coalesced, but M is not"
+            },
+            "answer": "E", 
+            "professor_explanation": "Coalesce happens amongst threads, not amongst different iterations of the loop within each thread's execution. Since all threads within a warp executes the same instruction, they all execute the same iteration in the loop at any time. So it doesn't matter if a thread reads through an entire row during its lifetime. What matters is that all the threads of a warp can be coalesced during each (collected) memory access. If you look across the threads in matrix M, they don't share row accesses at all, whereas for matrix N, each thread at iteration 0 combined will access the entire row 0. M: data access patternM is accessed with M[Row*Width+k], which is actuallyM[(blockIdx.y*blockDim.y+threadIdx.y)*Width + k] where threadIdx.y has Width coefficient.This violates the criterion. Assume blockIdx.y=0 ( all treads in the block 0). When k=0, in this case M access is through M[(0*blockDim.y+threadIdx.y)*width] = M[threadIdx.y*width].A single thread reads an entire row by iterating through incrementation of k, subsequent thread access global memory with a distance of width number of elements relative to the previous thread. Therefore, all accesses will be non-coalesced.When k=1, access will be N[threadIdx.y*width+1]. All accesses are non-coalesced only offset by 'k' amount.Assume width is 32. Threads in a warp read adjacent rows. During iteration 0, threads in a warp read element 0 of rows 0 through 31. During iteration 1, these same threads read element 1 of rows 0 through 31. None of the accesses will be coalesced. N: data access patternOn the other hand, N is accessed with N[k*Width+Col], which is actuallyN[k*Width + blockIdx.x*blockDim.x+threadIdx.x]. Assume blockIdx.x=0 ( all threads in the block 0). When k=0, in this case N access is through N[0*width+0*blockDim.x+threadIdx.x] = N[threadIdx.x]. Therefore all accesses will be coalesced.When k=1, access will be N[width+theradIdx.x]. All accesses are coalesced only offset by width amount.Each thread reads a column of N. During iteration 0, threads in warp 0 read element 1 of columns 0 through 31.All these accesses will be coalesced. P: data access patternP is accessed with Row*Widht+Col = (blockIdx.y*blockDin.y+threadIdx.y)*Width + blockIdx.x*blockDim.x+threadIdx.x. This meets the judging criterion.",
+            "explanation": ""
+        },
+        "2" : {
+            "question": "For the matrix multiplication example with 16x16 thread blocks, assume that each SM has 16,384 registers and the kernel code uses 16 registers per thread. Assume each SM can execute 16 blocks with a maximum thread block size of 1024,  and a maximum of 2048 threads. How many threads can run on each SM?",
+            "options": {
+                "A": "1024",
+                "B": "768",
+                "C": "2048",
+                "D": "1280",
+                "E": "1536"
+            },
+            "answer": "A",
+            "professor_explanation": "We need to identify the limiting factor for number of blocks. Given that 2048 threads is the capacity per SM, and each block has 16x16 threads we need 2048/256 = 8 blocksTotal register per block = 16x16x16Number of blocks = 16,384/(16*16*16) = 4 blocksRegister is the limiting factor. We can launch max of 4 blocks each with 256 threads.4*256 = 1024",
+            "explanation": ""
+        },
+        "3" : {
+            "question": "For the matrix multiplication example with 16x16 thread blocks, assume that each SM has 16,384 registers.  Now assume that the programmer declares another two automatic variables in the kernel and bumps the number of registers used by each thread from 16 to 18. How many threads can run on each SM?",
+            "options": {
+                "A": "2048",
+                "B": "1536",
+                "C": "768",
+                "D": "1024",
+                "E": "1280"
             },
             "answer": "C",
-            "professor_explanation": "",
+            "professor_explanation": "We need to identify the limiting factor for number of blocks. Given that 2048 threads is the capacity per SM, and each block has 16x16 threads we need 2048/256 = 8 blocksTotal register per block = 16x16x16Number of blocks = 16,384/(16*16*18) = 3 blocksRegister is the limiting factor. We can launch max of 3 blocks each with 256 threads.3*256 = 768",
+            "explanation": ""
+        },
+        "4" : {
+            "question": "If we launch the simple matrix multiplication kernel  with a block size of 16X16 on a 1017X1017 matrix, how many warps will have control divergence?",
+            "options": {
+                "A": "504",
+                "B": "508",
+                "C": "509",
+                "D": "567",
+                "E": "572"
+            },
+            "answer": "E", 
+            "professor_explanation": "There will be 64 blocks in the horizontal direction. 7 threads in the x dimension in each row will be in the invalid range. Every two rows form a warp. Therefore, there are 1017/2 =509 warps that will straddle the valid and invalid ranges in the horizontal direction. As for the warps in the bottom blocks, there are 64 blocks in the vertical direction. In the last row of blocks 9 threads will be in valid range and 7 will be out of range. Among the 9 threads groups of 2 will form a warp. First 4 warps will be in valid range, firth warp half of the threads in valid half out of range. Therefore this 1 warp will have divergence. Remaining 6 in the out of range will form 3 warps none of which will participate in computation. There will be 1 warp in each block total of 63. Black 64, last block in the last row, is covered with 1017/2. Total is 509+63 = 572 Other way isLast column in horizontal direction 63 blocks (excluding the bottom right corner) each with 8 warps diverging (63*8), in vertical direction last row of 63 blocks each with 1 warp diverging (63*1) excluding the corner, finally corner block has 5 warps with diverging behavior. First 4 due to horizontal direction, last one for the vertical direction.63*8+63*1+4+1 = 572",
+            "explanation": ""
+        },
+        "5" : {
+            "question": "For the tiled single-precision matrix multiplication kernel, assume that the tile size is 32X32 and the system has a DRAM burst size of 256 bytes. How many DRAM bursts will be delivered to the processor as a result of loading one A-matrix tile by a thread block?",
+            "options": {
+                "A": "8",
+                "B": "16",
+                "C": "32",
+                "D": "64",
+                "E": "128"
+            },
+            "answer": "B", 
+            "professor_explanation": "For a 32X32 A-tile, each row in the tile consists of 32 consecutive words. Memory serves 64 consecutive words (256bytes), serving two rows of tile at a time. We have 32 rows in a tile so there will be 16 bursts delivered to the processor",
             "explanation": ""
         }
     },
     "Quiz6" : {
         "1" : {
-            "question": "If we want to use each thread to calculate two output elements of a vector addition, what would be the expression for mapping the thread/block indices to data index of the first element?",
+            "question": "Assume that the input array size has 6000 elements. Below is the ranking based on execution time of Versions 1, 2, 3,and 4 from fastest (left) to slowest (right). Which one is correct?",
             "options": {
-                "A": "i=blockIdx.x*blockDim.x*2 + threadIdx.x;",
-                "B": "i=blockIdx.x*blockDim.x + threadIdx.x +2;",
-                "C": "i=(blockIdx.x*blockDim.x + threadIdx.x)*2;",
-                "D": "i=blockIdx.x*threadIdx.x*2;"
+                "A": "V3, V1, V2",
+                "B": "V1, V2, V3",
+                "C": "V2, V1, V3",
+                "D": "V1, V2, V3",
+                "E": "V3, V2, V1",
+                "F": "V1, V3, V2"
             },
-            "answer": "A",
+            "answer": "F",
             "professor_explanation": "",
             "explanation": ""
         }
