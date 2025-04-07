@@ -109,7 +109,154 @@
             "professor_explanation" : "",
             "explanation": ""
         }
-
+    },
+    "Quiz3" : {
+        "1" : {
+            "question": "If we want to use each thread to calculate two output elements of a vector addition, what would be the expression for mapping the thread/block indices to data index of the first element?",
+            "options": {
+                "A": "i=blockIdx.x*blockDim.x*2 + threadIdx.x;",
+                "B": "i=blockIdx.x*blockDim.x + threadIdx.x +2;",
+                "C": "i=(blockIdx.x*blockDim.x + threadIdx.x)*2;",
+                "D": "i=blockIdx.x*threadIdx.x*2;"
+            },
+            "answer": "A",
+            "professor_explanation": "",
+            "explanation": ""
+        },
+        "2" : {
+            "question": "Assume that a kernel is launched with 800 thread blocks each of which has 256 threads. If a variable is declared as a local memory variable, how many versions of the variable will be created through the lifetime of the execution of the kernel?",
+            "options": {
+                "A": "204,800",
+                "B": "1",
+                "C": "800",
+                "D": "1024",
+                "E": "256"
+            },
+            "answer": "A",
+            "professor_explanation": "Local memory variables are allocated to threads. So, the number of versions is the number of thread blocks times threads per block, 800*256.",
+            "explanation": ""
+        },
+        "3" : {
+            "question": "Assume that a kernel is launched with 800 thread blocks each of which has 256 threads. If a variable is declared as a global memory variable, how many versions of the variable will be created through the lifetime of the execution of the kernel?",
+            "options": {
+                "A": "1",
+                "B": "256",
+                "C": "204,800",
+                "D": "800",
+                "E": "1024"
+            },
+            "answer": "A",
+            "professor_explanation": "global memory variables are allocated to the grid. So, the number of versions is 1.",
+            "explanation": ""
+        },
+        "4" : {
+            "question": "Assume that a kernel is launched with 800 thread blocks each of which has 256 threads. If a variable is declared as a constant memory variable, how many versions of the variable will be created through the lifetime of the execution of the kernel?",
+            "options": {
+                "A": "256",
+                "B": "204,800",
+                "C": "800",
+                "D": "1",
+                "E": "1024"
+            },
+            "answer": "D",
+            "professor_explanation": "constant memory variables are allocated to the grid. So, the number of versions is 1.",
+            "explanation": ""
+        },
+        "5" : {
+            "question": "We refer to programs whose execution speed is limited by the memory access throughput as memory bound programs. A kernel performs 96 floating point operations and twenty 32-bit word global memory accesses per thread. For which of the following device properties this kernel is compute-bound?",
+            "options": {
+                "A": "Peak FLOPS = 200 GFLOPS, Peak Memory Bandwidth = 150 GB/s",
+                "B": "Peak FLOPS = 400 GFLOPS, Peak Memory Bandwidth = 300 GB/s",
+                "C": "Peak FLOPS = 500 GFLOPS, Peak Memory Bandwidth = 450 GB/s",
+                "D": "Peak FLOPS = 600 GFLOPS, Peak Memory Bandwidth = 475 GB/s",
+                "E": "Peak FLOPS = 300 GFLOPS, Peak Memory Bandwidth = 200 GB/s"
+            },
+            "answer": "C",
+            "professor_explanation": "there are 20 memory accesses totaling 80 Bytes. there are 96 FP operations. Therefore kernel has 80/96 = 0.833 Bytes per floating point operation. When you multiply this number with the GFLOPS number we find the memory bandwidth required to achieve peak throughput.  If this value exceeds the memory bandwidth than we know that memory can not satisfy the memory demand, therefore configuration is memory bound.",
+            "explanation": ""
+        },
+        "6" : {
+            "question": "For the color space conversion kernel, which thread block configuration will result with best thread utilization per SM on a device with the following features:-Maximum number of threads per blocks: 1024,-Maximum number of threads /SM : 2048-Maximum number of resident blocks/SM: 16",
+            "options": {
+                "A": "25x16",
+                "B": "20x16",
+                "C": "36x32",
+                "D": "5x16",
+                "E": "14x32"
+            },
+            "answer": "A",
+            "professor_explanation": "",
+            "explanation": ""
+        },
+        "7" : {
+            "question": "For the color space conversion kernel, which thread block configuration will result with best thread utilization per SM on a device with the following features:-Maximum number of threads per blocks: 1024,-Maximum number of threads /SM : 2048-Maximum number of resident blocks/SM: 16",
+            "options": {
+                "A": "25x16",
+                "B": "20x16",
+                "C": "36x32",
+                "D": "5x16",
+                "E": "14x32"
+            },
+            "answer": "A",
+            "professor_explanation": "Shared memory is allocated per thread block, so all threads in the block have access to the same shared memory. Total shared memory requirement = number of blocks * shared memory per thread block. Therefore all options are feasible",
+            "explanation": ""
+        },
+        "8" : {
+            "question": "Assume that the input array size has 6000 elements. Below is the ranking based on execution time of Versions 1, 2, 3,and 4 from fastest (left) to slowest (right). Which one is correct?",
+            "options": {
+                "A": "V3, V1, V2",
+                "B": "V1, V2, V3",
+                "C": "V2, V1, V3",
+                "D": "V1, V2, V3",
+                "E": "V3, V2, V1",
+                "F": "V1, V3, V2"
+            },
+            "answer": "F",
+            "professor_explanation": "",
+            "explanation": ""
+        }
+    },
+    "Quiz5" : {
+        "1" : {
+            "question": "Device with compute capability 1.0 can have 16KB of shared memory per SM, maximum of 8 resident blocks per SM and 512 threads per block. Device with compute capability 1.2 can have 48KB of shared memory per SM with maximum of 8 resident blocks per SM and 512 threads per block. Based on this information, indicate which of the following assignment per SM is not possible.",
+            "options": {
+                "A": "7 blocks with 128 threads each and 16B shared memory per thread block on a device with compute capability 1.0",
+                "B": "8 blocks with 512 threads each and 64B shared memory per thread block on a device with compute capability 1.2",
+                "C": "All of the given options are possible",
+                "D": "4 blocks with 128 threads each and 32B shared memory per thread block on a device with compute capability 1.0"
+            },
+            "answer": "C",
+            "professor_explanation": "",
+            "explanation": ""
+        }
+    },
+    "Quiz6" : {
+        "1" : {
+            "question": "If we want to use each thread to calculate two output elements of a vector addition, what would be the expression for mapping the thread/block indices to data index of the first element?",
+            "options": {
+                "A": "i=blockIdx.x*blockDim.x*2 + threadIdx.x;",
+                "B": "i=blockIdx.x*blockDim.x + threadIdx.x +2;",
+                "C": "i=(blockIdx.x*blockDim.x + threadIdx.x)*2;",
+                "D": "i=blockIdx.x*threadIdx.x*2;"
+            },
+            "answer": "A",
+            "professor_explanation": "",
+            "explanation": ""
+        }
+    },
+    "Quiz7" : {
+        "1" : {
+            "question": "If we want to use each thread to calculate two output elements of a vector addition, what would be the expression for mapping the thread/block indices to data index of the first element?",
+            "options": {
+                "A": "i=blockIdx.x*blockDim.x*2 + threadIdx.x;",
+                "B": "i=blockIdx.x*blockDim.x + threadIdx.x +2;",
+                "C": "i=(blockIdx.x*blockDim.x + threadIdx.x)*2;",
+                "D": "i=blockIdx.x*threadIdx.x*2;"
+            },
+            "answer": "A",
+            "professor_explanation": "",
+            "explanation": ""
+        }
     }
 
 }
