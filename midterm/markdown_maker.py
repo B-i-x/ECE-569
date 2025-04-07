@@ -35,9 +35,11 @@ def embed_resource(filepath, file_ext):
     - If .png, returns an image link.
     - If .c or .cu, reads the file content and wraps it in a Markdown code block.
     """
+    md_filepath = filepath.replace("\\", "/")
+
     if file_ext == "png":
         # Embed as an image
-        return f"![Resource image]({filepath})"
+        return f"![Resource image]({md_filepath})"
     else:
         # Assume .c or .cu => embed code
         # Choose a code fence language. For .c => 'c', for .cu => 'cuda' (or 'cpp').

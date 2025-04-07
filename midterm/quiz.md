@@ -108,7 +108,7 @@
 
 **Question:** We want to use each thread to calculate two output elements of a vector addition. Each thread block processes 2*blockDim.x consecutive elements that form two sections. All threads in each block will first process a section, each processing one element. They will then all move to the next section, again each processing one element. Assume that variable i should be the index for the first element to be processed by a thread. What would be the expression for mapping the thread/block indices to data index of the first element? Example thread to data mapping is shown below with thread 0 in block 0 operating on two array elements indexed as 0 and 4 and thread 1 in the same block operating on elements indexed as 1 and 5. Stride amount is the block size of 4 in this example.
 
-![Resource image](midterm/resources\Quiz2-3-question.png)
+![Resource image](midterm/resources/Quiz2-3-question.png)
 
 **Options:**
 - **A:** i=blockIdx.x*blockDim.x*2 + threadIdx.x;
@@ -218,7 +218,7 @@
 
 **Professor Explanation:** there are 20 memory accesses totaling 80 Bytes. there are 96 FP operations. Therefore kernel has 80/96 = 0.833 Bytes per floating point operation. When you multiply this number with the GFLOPS number we find the memory bandwidth required to achieve peak throughput.  If this value exceeds the memory bandwidth than we know that memory can not satisfy the memory demand, therefore configuration is memory bound.
 
-![Resource image](midterm/resources\Quiz3-5-professor_explanation.png)
+![Resource image](midterm/resources/Quiz3-5-professor_explanation.png)
 
 ---
 
