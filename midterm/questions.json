@@ -36,7 +36,7 @@
             "explanation": ""
         },
         "4" : {
-            "questions": "How would one declare a variable err that can appropriately receive returned value of a CUDA API call?",
+            "question": "How would one declare a variable err that can appropriately receive returned value of a CUDA API call?",
             "options": {
                 "A": "cudaError_t err;",
                 "B": "cudaError err;",

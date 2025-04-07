@@ -16,7 +16,7 @@ def json_to_markdown(json_file, output_file):
         # Process each question within the quiz
         for q_num, q_content in questions.items():
             # Use 'question' key if present, otherwise fallback to 'questions'
-            question_text = q_content.get("question") or q_content.get("questions", "No question provided")
+            question_text = q_content.get("question")
             
             md_lines.append(f"## Question {q_num}")
             md_lines.append("")
