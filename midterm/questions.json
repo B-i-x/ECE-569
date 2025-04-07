@@ -431,14 +431,67 @@
     },
     "Quiz7" : {
         "1" : {
-            "question": "If we want to use each thread to calculate two output elements of a vector addition, what would be the expression for mapping the thread/block indices to data index of the first element?",
+            "question": "Assume that we are to process 512 elements with the kernel given below, and kernel is launched with 512 threads/block. Which expression below gives the closest approximation for the number of add operations performed only over the input data (excluding peripheral additions used for thread index calculations) with this kernel launch?",
             "options": {
-                "A": "i=blockIdx.x*blockDim.x*2 + threadIdx.x;",
-                "B": "i=blockIdx.x*blockDim.x + threadIdx.x +2;",
-                "C": "i=(blockIdx.x*blockDim.x + threadIdx.x)*2;",
-                "D": "i=blockIdx.x*threadIdx.x*2;"
+                "A": "2*(512-1)",
+                "B": "9",
+                "C": "512-1",
+                "D": "9*512",
+                "E": "18"
             },
             "answer": "A",
+            "professor_explanation": "The number of add operations performed by this kernel (step efficient but not work efficient) is approximately N*log(N), where N is the number of elements. 512log(512) = 9*512",
+            "explanation": ""
+        },
+        "2" : {
+            "question": "Assume that we are to process  4096 elements with the kernel given below, and kernel is launched with a grid configuration composed of 8 blocks and 512 threads/block. Assume that device has 12 SMs.  Each SM can launch up to 16 thread blocks. Maximum number of threads per SM is 2048. Which expression below gives the closest approximation for the number of add operations performed only over the input data (excluding peripheral additions used for thread index calculations) with this kernel launch?",
+            "options": {
+                "A": "8*9",
+                "B": "9*16",
+                "C": "2*(8*512-1)",
+                "D": "8*(512-1)",
+                "E": "72*512"
+            },
+            "answer": "E",
+            "professor_explanation": "The number of add operations performed by this kernel (step efficient but not work efficient) is approximately N*log(N), where N is the number of elements = 512log(512) = 512*9, since ther are 8 thread blocks total number of add operatins is 72*512",
+            "explanation": ""
+        },
+        "3" : {
+            "question": "Based on the way my_kernel is launched, what is the total number of warps that will have control divergence during the loop execution when stride is 8? Assume that device has 16 SMs.  Each SM can launch up to 16 thread blocks. Maximum number of threads per SM is 2048.",
+            "options": {
+                "A": "0",
+                "B": "1",
+                "C": "4",
+                "D": "16",
+                "E": "64"
+            },
+            "answer": "E",
+            "professor_explanation": "There are 2^5*2^10 elements, block size is 2^9, therefore we will have a total of 64 thread blocks.In each block we have 512/32 = 16 warps.When stride is 8, threads 0 to 7 in the entire thread block do not participate in the compuations.Threads 0 to 7 all belong to warp 0. That means warp 0 will observe thrad divergence and reaming 15 warps will not observe divergence. 1 warp per thread block will observe divergence. There are 64 thread blocks, therefore 64 warps will observe divergence",
+            "explanation": ""
+        },
+        "4" : {
+            "question": "Based on the way my_kernel is launched,  what is the total number of warps that will have control divergence during the loop execution when stride is 128? Assume that device has 12 SMs.  Each SM can launch up to 16 thread blocks. Maximum number of threads per SM is 2048.",
+            "options": {
+                "A": "0",
+                "B": "1",
+                "C": "4",
+                "D": "16",
+                "E": "64"
+            },
+            "answer": "A",
+            "professor_explanation": "All 128 inactive threads are at the front of the block. Therefore, all threads in the first four warps are inactive. All threads in the remaining warps are active. There is no control divergence",
+            "explanation": ""
+        },
+        "5" : {
+            "question": "An exclusive scan operation is similar to an inclusive operation, except that the exclusive scan operation on the input array [3 1 7 0 4 1 6 3] would return [0 3 4 11 11 15 16 22]. Below is the C code for the serial inclusive scan. Which modification on the for-loop will turn the code given above to exclusive scan?",
+            "options": {
+                "A": "",
+                "B": "",
+                "C": "",
+                "D": "",
+                "E": ""
+            },
+            "answer": "E",
             "professor_explanation": "",
             "explanation": ""
         }
