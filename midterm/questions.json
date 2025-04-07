@@ -1,0 +1,13 @@
+{
+    "1.1" : {
+        "question": "If we want to allocate an array of v integer elements in CUDA device global memory, what would be an appropriate expression for the second argument of the cudaMalloc() call?",
+        "options": {
+            "A": "n * sizeof(int)",
+            "B": "n",
+            "C": "v",
+            "D": "v * sizeof(int)"
+        },
+        "answer": "D",
+        "explanation": "API call"
+    }
+}
