@@ -46,6 +46,18 @@
             "answer": "A",
             "professor_explanation": "",
             "explanation": ""
+        },
+        "5" : {
+            "question": "If we want to allocate using Unified Memory an array of n elements of type double and have a pointer variable d_A to point to the allocated memory, what would be the appropriate API call?",
+            "options": {
+                "A": "cudaMallocHost((void **)& d_A, n * sizeof(double) );",
+                "B": "cudaMalloc((void **)& d_A, n * sizeof(double) );",
+                "C": "cudaMallocManaged( d_A, n);",
+                "D": "cudaMallocManaged((void **)& d_A, n * sizeof(double) );"
+            },
+            "answer": "D",
+            "professor_explanation": "",
+            "explanation": ""
         }
     }
 
