@@ -17,8 +17,22 @@ $ ./reduce > out.txt
 #include <cuda_runtime.h>
 
 #include <chrono>   // C++11 chrono header for timing
-#include <stdlib.h>
 
+// Macro to check the return value of CUDA calls and exit if there's an error.
+#define CUDA_CHECK(call)                                                                 \
+    do {                                                                                 \
+        cudaError_t err = call;                                                          \
+        if (cudaSuccess != err) {                                                        \
+            fprintf(stderr, "CUDA error in file '%s' in line %i: %s.\n", __FILE__, __LINE__, \
+                    cudaGetErrorString(err));                                            \
+            exit(EXIT_FAILURE);                                                          \
+        }                                                                                \
+    } while (0)
+
+
+    //----------------------------------------------------------------------
+// Device Kernels
+//----------------------------------------------------------------------
 //-------------------------------------------------------------
 // Kernel 0: Global memory reduction using stride-based approach.
 // Uses the input array in global memory and performs in-place reduction.
@@ -176,201 +190,252 @@ __global__ void shared_reverse_firstreduction(float * d_out, const float * d_in)
 }
 
 
-//-------------------------------------------------------------
-// Function that launches the reduction kernels.
-// It assumes size is a multiple of maxThreadsPerBlock and no larger than maxThreadsPerBlock^2.
+//----------------------------------------------------------------------
+// Host function to launch reduction kernels.
+//----------------------------------------------------------------------
 void reduce(float * d_out, float * d_intermediate, float * d_in, 
-            int size, int version)
-{
-    // assumes that size is not greater than maxThreadsPerBlock^2
-    // and that size is a multiple of maxThreadsPerBlock
+    int size, int version)
+    {
     const int maxThreadsPerBlock = 1024;
     int threads = maxThreadsPerBlock;
     int blocks = size / maxThreadsPerBlock;
-    
-    if (version==4)
+
+    printf("Launching reduction kernel version %d with %d blocks and %d threads per block.\n", version, blocks, threads);
+    fflush(stdout);
+
+    if (version == 4)
     {
         global_reduce_stride<<<blocks, threads>>>(d_intermediate, d_in);
+        CUDA_CHECK(cudaGetLastError());
     }
-    else if (version==3)
+    else if (version == 3)
     {
-        shared_reverse_firstreduction<<<blocks/2, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
+    shared_reverse_firstreduction<<<blocks/2, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
+    CUDA_CHECK(cudaGetLastError());
     }
-    else if (version==2)
+    else if (version == 2)
     {
-        shared_reduce_reverse<<<blocks, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
-    }
-    else if (version==1)
-    {
-        shared_reduce_stride_nodiverge<<<blocks, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
-    }
-    else if (version==0)
-    {
-        shared_reduce_stride<<<blocks, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
-    }
-    // now we're down to one block left, so reduce it
-    threads = blocks; // launch one thread for each block in prev step
-    blocks = 1;
-     
-    if (version==4)
-    {
-        global_reduce_stride<<<blocks, threads>>>(d_out, d_intermediate);
-    }
-    else if (version==3)
-    {
-        shared_reverse_firstreduction<<<blocks/2, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
-    }
-    else if (version==2)
-    {
-        shared_reduce_reverse<<<blocks, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
+    shared_reduce_reverse<<<blocks, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
+    CUDA_CHECK(cudaGetLastError());
     }
     else if (version == 1)
     {
-       shared_reduce_stride_nodiverge<<<blocks, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
-        
+    shared_reduce_stride_nodiverge<<<blocks, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
+    CUDA_CHECK(cudaGetLastError());
     }
     else if (version == 0)
     {
-        shared_reduce_stride<<<blocks, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
+    shared_reduce_stride<<<blocks, threads, threads * sizeof(float)>>>(d_intermediate, d_in);
+    CUDA_CHECK(cudaGetLastError());
     }
-}
+
+    // Second reduction: reduce intermediate results to a single block.
+    threads = blocks;
+    blocks = 1;
+    printf("Launching second-stage reduction with %d block and %d threads.\n", blocks, threads);
+    fflush(stdout);
+
+    if (version == 4)
+    {
+    global_reduce_stride<<<blocks, threads>>>(d_out, d_intermediate);
+    CUDA_CHECK(cudaGetLastError());
+    }
+    else if (version == 3)
+    {
+    shared_reverse_firstreduction<<<blocks/2, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
+    CUDA_CHECK(cudaGetLastError());
+    }
+    else if (version == 2)
+    {
+    shared_reduce_reverse<<<blocks, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
+    CUDA_CHECK(cudaGetLastError());
+    }
+    else if (version == 1)
+    {
+    shared_reduce_stride_nodiverge<<<blocks, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
+    CUDA_CHECK(cudaGetLastError());
+    }
+    else if (version == 0)
+    {
+    shared_reduce_stride<<<blocks, threads, threads * sizeof(float)>>>(d_out, d_intermediate);
+    CUDA_CHECK(cudaGetLastError());
+    }
+    }
+
+    //----------------------------------------------------------------------
+    // Main function with enhanced debug output.
+    //----------------------------------------------------------------------
 int main(int argc, char **argv)
-{
+    {
     int j;
     float nsum;
+    // Set stdout to be unbuffered.
+    setvbuf(stdout, NULL, _IONBF, 0);
+
+    printf("Program started.\n");
+    fflush(stdout);
 
     int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
+    CUDA_CHECK(cudaGetDeviceCount(&deviceCount));
+    printf("Detected %d CUDA device(s).\n", deviceCount);
     if (deviceCount == 0) {
-        fprintf(stderr, "error: no devices supporting CUDA.\n");
-        exit(EXIT_FAILURE);
+    fprintf(stderr, "error: no devices supporting CUDA.\n");
+    exit(EXIT_FAILURE);
     }
+
     int dev = 0;
-    cudaSetDevice(dev);
+    CUDA_CHECK(cudaSetDevice(dev));
+    printf("Using device %d.\n", dev);
 
     cudaDeviceProp devProps;
+    CUDA_CHECK(cudaGetDeviceProperties(&devProps, dev));
+    printf("Device properties:\n");
+    printf("    Name: %s\n", devProps.name);
+    printf("    Global Memory: %d B\n", (int)devProps.totalGlobalMem);
+    printf("    Compute Capability: %d.%d\n", devProps.major, devProps.minor);
+    printf("    Clock Rate: %d kHz\n", devProps.clockRate);
+    fflush(stdout);
 
     const int ARRAY_SIZE = 1 << 20;
     const int ARRAY_BYTES = ARRAY_SIZE * sizeof(float);
 
-    // Generate the input array on the host.
+    // Allocate host array.
     float h_in[ARRAY_SIZE];
     float sum = 0.0f;
+    printf("Initializing host array of size %d...\n", ARRAY_SIZE);
     for(int i = 0; i < ARRAY_SIZE; i++) {
-        // Generate random float in [-1.0f, 1.0f]
-        h_in[i] = -1.0f + (float)rand() / ((float)RAND_MAX / 2.0f);
-        sum += h_in[i];
+    h_in[i] = -1.0f + (float)rand() / ((float)RAND_MAX / 2.0f);
+    sum += h_in[i];
     }
-
-    // Declare GPU memory pointers.
-    float * d_in, * d_intermediate, * d_out;
+    printf("Host array initialized. Serial sum = %f\n", sum);
+    fflush(stdout);
 
     // Allocate GPU memory.
-    cudaMalloc((void **) &d_in, ARRAY_BYTES);
-    cudaMalloc((void **) &d_intermediate, ARRAY_BYTES); // overallocated
-    cudaMalloc((void **) &d_out, sizeof(float));
+    float * d_in, * d_intermediate, * d_out;
+    printf("Allocating GPU memory...\n");
+    CUDA_CHECK(cudaMalloc((void **) &d_in, ARRAY_BYTES));
+    CUDA_CHECK(cudaMalloc((void **) &d_intermediate, ARRAY_BYTES)); // overallocated
+    CUDA_CHECK(cudaMalloc((void **) &d_out, sizeof(float)));
+    printf("GPU memory allocated.\n");
+    fflush(stdout);
 
-    // Transfer the input array to the GPU.
-    cudaMemcpy(d_in, h_in, ARRAY_BYTES, cudaMemcpyHostToDevice); 
+    // Transfer host array to GPU.
+    printf("Copying data from host to device...\n");
+    CUDA_CHECK(cudaMemcpy(d_in, h_in, ARRAY_BYTES, cudaMemcpyHostToDevice));
+    printf("Data transfer complete.\n");
+    fflush(stdout);
 
     int whichKernel = 0;      
     cudaEvent_t start, stop;
+    CUDA_CHECK(cudaEventCreate(&start));
+    CUDA_CHECK(cudaEventCreate(&stop));
 
     // Use chrono to measure the serial (CPU) sum time.
     nsum = 0.0f;
     auto host_start = std::chrono::high_resolution_clock::now();
     for (j = 0; j < ARRAY_SIZE; j++) {
-        nsum += h_in[j];
+    nsum += h_in[j];
     }
     auto host_end = std::chrono::high_resolution_clock::now();
     double host_elapsed_ms = std::chrono::duration<double, std::milli>(host_end - host_start).count();
-
-    printf("serial code execution time %f ms\n", host_elapsed_ms);
+    printf("Serial code execution time: %f ms\n", host_elapsed_ms);
     printf("--------------------------\n\n");
+    fflush(stdout);
 
-    if (cudaGetDeviceProperties(&devProps, dev) == 0)
-    {
-         printf("Using device %d:\n", dev);
-         printf("%s; global mem: %dB; compute v%d.%d; clock: %d kHz\n",
-                devProps.name, (int)devProps.totalGlobalMem, 
-                (int)devProps.major, (int)devProps.minor, 
-                (int)devProps.clockRate);
-    }
-  
-    // Run the different reduction kernels.
+    // Run each reduction kernel version.
     for (whichKernel = 0; whichKernel < 5; whichKernel++) 
     { 
-        cudaEventCreate(&start);
-        cudaEventCreate(&stop);
-        // Launch the kernel for the chosen version.
-        switch (whichKernel) {
+    printf("===========================================\n");
+    printf("Testing reduction kernel version %d...\n", whichKernel);
+    fflush(stdout);
+
+    // Re-create events for each kernel version.
+    CUDA_CHECK(cudaEventCreate(&start));
+    CUDA_CHECK(cudaEventCreate(&stop));
+
+    switch (whichKernel) {
         case 0:
             printf("Running shared stride reduce\n");
-            cudaEventRecord(start, 0);
-            for (int i = 0; i < 100; i++)
-            {
+            fflush(stdout);
+            CUDA_CHECK(cudaEventRecord(start, 0));
+            for (int i = 0; i < 100; i++) {
                 reduce(d_out, d_intermediate, d_in, ARRAY_SIZE, 0);
             }
-            cudaEventRecord(stop, 0);
+            CUDA_CHECK(cudaEventRecord(stop, 0));
             break;
         case 1:
             printf("Running shared stride no divergent reduce\n");
-            cudaEventRecord(start, 0);
-            for (int i = 0; i < 100; i++)
-            {
+            fflush(stdout);
+            CUDA_CHECK(cudaEventRecord(start, 0));
+            for (int i = 0; i < 100; i++) {
                 reduce(d_out, d_intermediate, d_in, ARRAY_SIZE, 1);
             }
-            cudaEventRecord(stop, 0);
+            CUDA_CHECK(cudaEventRecord(stop, 0));
             break;
         case 2:
             printf("Running shared reduce reversed\n");
-            cudaEventRecord(start, 0);
-            for (int i = 0; i < 100; i++)
-            {
+            fflush(stdout);
+            CUDA_CHECK(cudaEventRecord(start, 0));
+            for (int i = 0; i < 100; i++) {
                 reduce(d_out, d_intermediate, d_in, ARRAY_SIZE, 2);
             }
-            cudaEventRecord(stop, 0);
+            CUDA_CHECK(cudaEventRecord(stop, 0));
             break;
         case 3:
             printf("Running global reduce stride - naive first reduction\n");
-            cudaEventRecord(start, 0);
-            for (int i = 0; i < 100; i++)
-            {
+            fflush(stdout);
+            CUDA_CHECK(cudaEventRecord(start, 0));
+            for (int i = 0; i < 100; i++) {
                 reduce(d_out, d_intermediate, d_in, ARRAY_SIZE, 3);
             }
-            cudaEventRecord(stop, 0);
+            CUDA_CHECK(cudaEventRecord(stop, 0));
             break;
         case 4:
             printf("Running global reduce stride - naive\n");
-            cudaEventRecord(start, 0);
-            for (int i = 0; i < 100; i++)
-            {
+            fflush(stdout);
+            CUDA_CHECK(cudaEventRecord(start, 0));
+            for (int i = 0; i < 100; i++) {
                 reduce(d_out, d_intermediate, d_in, ARRAY_SIZE, 4);
             }
-            cudaEventRecord(stop, 0);
+            CUDA_CHECK(cudaEventRecord(stop, 0));
             break;
         default:
             fprintf(stderr, "error: ran no kernel\n");
             exit(EXIT_FAILURE);
-        }
-        cudaEventSynchronize(stop);
-        float elapsedTime;
-        cudaEventElapsedTime(&elapsedTime, start, stop);    
-        elapsedTime /= 100.0f;      // average over 100 trials
-
-        // Copy back the sum from GPU.
-        float h_out;
-        cudaMemcpy(&h_out, d_out, sizeof(float), cudaMemcpyDeviceToHost);
-        printf("average time elapsed >>>>>>> %f ms\n", elapsedTime);
-        printf("\n");
-
-        cudaEventDestroy(start);
-        cudaEventDestroy(stop);
     }
-    // Free GPU memory allocation.
-    cudaFree(d_in);
-    cudaFree(d_intermediate);
-    cudaFree(d_out);
-        
+
+    CUDA_CHECK(cudaEventSynchronize(stop));
+    float elapsedTime;
+    CUDA_CHECK(cudaEventElapsedTime(&elapsedTime, start, stop));
+    elapsedTime /= 100.0f;      // average over 100 trials
+
+    // Check for any CUDA errors.
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        fprintf(stderr, "CUDA error after kernel launch: %s\n", cudaGetErrorString(err));
+        exit(EXIT_FAILURE);
+    }
+
+    // Copy back the sum from the GPU.
+    float h_out;
+    CUDA_CHECK(cudaMemcpy(&h_out, d_out, sizeof(float), cudaMemcpyDeviceToHost));
+    printf("Kernel version %d average time elapsed: %f ms\n", whichKernel, elapsedTime);
+    printf("GPU reduction result: %f\n", h_out);
+    fflush(stdout);
+
+    CUDA_CHECK(cudaEventDestroy(start));
+    CUDA_CHECK(cudaEventDestroy(stop));
+    }
+
+    // Free GPU memory.
+    printf("Freeing GPU memory...\n");
+    CUDA_CHECK(cudaFree(d_in));
+    CUDA_CHECK(cudaFree(d_intermediate));
+    CUDA_CHECK(cudaFree(d_out));
+    printf("GPU memory freed.\n");
+
+    printf("Program finished.\n");
+    fflush(stdout);
+
     return 0;
 }
