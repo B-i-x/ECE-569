@@ -57,7 +57,7 @@
             },
             "answer": "D",
             "professor_explanation": "",
-            "explanation": ""
+            "explanation": "Managed == Unified Memory. cudaMallocManaged() is the API to allocate Unified Memory. The first argument should be a pointer to a pointer to the allocated memory. The second argument is the size of the memory to be allocated in bytes."
         }
     },
     "Quiz2" : {
@@ -107,7 +107,7 @@
             },
             "answer": "D",
             "professor_explanation" : "",
-            "explanation": ""
+            "explanation": "1024 * 8 = 8192. 8192 threads are launched in the grid. 8000 elements are covered by 8192 threads. The remaining 192 threads are not used."
         }
     },
     "Quiz3" : {
@@ -160,7 +160,7 @@
             },
             "answer": "D",
             "professor_explanation": "constant memory variables are allocated to the grid. So, the number of versions is 1.",
-            "explanation": ""
+            "explanation": "all 800 thread blocks are one 1 sm in this case. So, the number of versions is 1."
         },
         "5" : {
             "question": "We refer to programs whose execution speed is limited by the memory access throughput as memory bound programs. A kernel performs 96 floating point operations and twenty 32-bit word global memory accesses per thread. For which of the following device properties this kernel is compute-bound?",

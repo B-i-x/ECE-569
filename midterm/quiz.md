@@ -46,6 +46,10 @@
 
 **Answer:** D
 
+**Explanation:** 
+
+![Resource image](resources/Quiz1-3-explanation.png)
+
 ---
 
 ## Question 4
@@ -73,6 +77,8 @@
 - **D:** cudaMallocManaged((void **)& d_A, n * sizeof(double) );
 
 **Answer:** D
+
+**Explanation:** Managed == Unified Memory. cudaMallocManaged() is the API to allocate Unified Memory. The first argument should be a pointer to a pointer to the allocated memory. The second argument is the size of the memory to be allocated in bytes.
 
 ---
 
@@ -124,6 +130,8 @@
 
 **Professor Explanation:** Explanation: Each previous block covers (blockIdx.x*blockDim.x)*2. The beginning elements of the threads are consecutive in this case so just add threadIdx.x to it
 
+**Explanation:** 
+
 ---
 
 ## Question 4
@@ -137,6 +145,8 @@
 - **D:** 8192
 
 **Answer:** D
+
+**Explanation:** 1024 * 8 = 8192. 8192 threads are launched in the grid. 8000 elements are covered by 8192 threads. The remaining 192 threads are not used.
 
 ---
 
@@ -170,6 +180,10 @@
 **Answer:** A
 
 **Professor Explanation:** Local memory variables are allocated to threads. So, the number of versions is the number of thread blocks times threads per block, 800*256.
+
+**Explanation:** 
+
+![Resource image](resources/Quiz3-2-explanation.png)
 
 ---
 
@@ -205,6 +219,8 @@
 
 **Professor Explanation:** constant memory variables are allocated to the grid. So, the number of versions is 1.
 
+**Explanation:** all 800 thread blocks are one 1 sm in this case. So, the number of versions is 1.
+
 ---
 
 ## Question 5
@@ -224,6 +240,8 @@
 
 ![Resource image](resources/Quiz3-5-professor_explanation.png)
 
+**Explanation:** 
+
 ---
 
 ## Question 6
@@ -238,6 +256,8 @@
 - **E:** 14x32
 
 **Answer:** A
+
+**Explanation:** 
 
 ---
 
@@ -312,6 +332,8 @@ __global__ void kernel_1t1c(
 
 **Answer:** F
 
+**Explanation:** 
+
 ---
 
 # Quiz4
@@ -343,6 +365,8 @@ __global__ void PictureKernel(
 
 **Professor Explanation:** We are to process a 600X800 (800 pixels in the x or horizontal direction, 600 pixels in the y or vertical direction) picture with the PictureKernel()
 
+**Explanation:** 
+
 ---
 
 ## Question 2
@@ -371,6 +395,8 @@ __global__ void PictureKernel(
 **Answer:** E
 
 **Professor Explanation:** The size of the picture in the x dimension is a multiple of 16 so there is no block in the x direction that has any threads in the invalid range. The size of the picture in the y dimension is 37.5 times of 16. This means that the threads in the last block are divided into halves: 128 in the valid range and 128 in the invalid range. Since 128 is a multiple of 32, all warps will fall into either one or the other range. There is no control divergence.
+
+**Explanation:** 
 
 ---
 
@@ -401,6 +427,8 @@ __global__ void PictureKernel(
 
 **Professor Explanation:** The size of the picture in the x dimension is 600, which is 37.5 times of 16. This means that every warp processing the right edge of the picture will have control divergence. There are 50*8 such warps (50 blocks, 8 warps in each block). Since the size of the picture in the y dimension is a multiple of 16, there is no more divergence in the warps that process the lower edge of the picture
 
+**Explanation:** 
+
 ---
 
 ## Question 4
@@ -429,6 +457,8 @@ __global__ void PictureKernel(
 **Answer:** E
 
 **Professor Explanation:** The number of warps processing the right edge remains 50*8, all of which will have control divergence. However, the warps processing the lower edge of the picture will also have control divergence. There are 38 of them. One of them is already counted for processing the right edge. So we have 50*8+38-1 = 50*8+37
+
+**Explanation:** 
 
 ---
 
@@ -480,6 +510,8 @@ __global__ void MatrixMulKernel(float* M, float* N, float* P, int Width) {
 **Answer:** E
 
 **Professor Explanation:** Coalesce happens amongst threads, not amongst different iterations of the loop within each thread's execution. Since all threads within a warp executes the same instruction, they all execute the same iteration in the loop at any time. So it doesn't matter if a thread reads through an entire row during its lifetime. What matters is that all the threads of a warp can be coalesced during each (collected) memory access. If you look across the threads in matrix M, they don't share row accesses at all, whereas for matrix N, each thread at iteration 0 combined will access the entire row 0. M: data access patternM is accessed with M[Row*Width+k], which is actuallyM[(blockIdx.y*blockDim.y+threadIdx.y)*Width + k] where threadIdx.y has Width coefficient.This violates the criterion. Assume blockIdx.y=0 ( all treads in the block 0). When k=0, in this case M access is through M[(0*blockDim.y+threadIdx.y)*width] = M[threadIdx.y*width].A single thread reads an entire row by iterating through incrementation of k, subsequent thread access global memory with a distance of width number of elements relative to the previous thread. Therefore, all accesses will be non-coalesced.When k=1, access will be N[threadIdx.y*width+1]. All accesses are non-coalesced only offset by 'k' amount.Assume width is 32. Threads in a warp read adjacent rows. During iteration 0, threads in a warp read element 0 of rows 0 through 31. During iteration 1, these same threads read element 1 of rows 0 through 31. None of the accesses will be coalesced. N: data access patternOn the other hand, N is accessed with N[k*Width+Col], which is actuallyN[k*Width + blockIdx.x*blockDim.x+threadIdx.x]. Assume blockIdx.x=0 ( all threads in the block 0). When k=0, in this case N access is through N[0*width+0*blockDim.x+threadIdx.x] = N[threadIdx.x]. Therefore all accesses will be coalesced.When k=1, access will be N[width+theradIdx.x]. All accesses are coalesced only offset by width amount.Each thread reads a column of N. During iteration 0, threads in warp 0 read element 1 of columns 0 through 31.All these accesses will be coalesced. P: data access patternP is accessed with Row*Widht+Col = (blockIdx.y*blockDin.y+threadIdx.y)*Width + blockIdx.x*blockDim.x+threadIdx.x. This meets the judging criterion.
+
+**Explanation:** 
 
 ---
 
@@ -547,6 +579,8 @@ __global__ void MatrixMulKernel(float* M, float* N, float* P, int Width) {
 
 **Professor Explanation:** There will be 64 blocks in the horizontal direction. 7 threads in the x dimension in each row will be in the invalid range. Every two rows form a warp. Therefore, there are 1017/2 =509 warps that will straddle the valid and invalid ranges in the horizontal direction. As for the warps in the bottom blocks, there are 64 blocks in the vertical direction. In the last row of blocks 9 threads will be in valid range and 7 will be out of range. Among the 9 threads groups of 2 will form a warp. First 4 warps will be in valid range, firth warp half of the threads in valid half out of range. Therefore this 1 warp will have divergence. Remaining 6 in the out of range will form 3 warps none of which will participate in computation. There will be 1 warp in each block total of 63. Black 64, last block in the last row, is covered with 1017/2. Total is 509+63 = 572 Other way isLast column in horizontal direction 63 blocks (excluding the bottom right corner) each with 8 warps diverging (63*8), in vertical direction last row of 63 blocks each with 1 warp diverging (63*1) excluding the corner, finally corner block has 5 warps with diverging behavior. First 4 due to horizontal direction, last one for the vertical direction.63*8+63*1+4+1 = 572
 
+**Explanation:** 
+
 ---
 
 ## Question 5
@@ -608,6 +642,8 @@ __global__ void histo_kernel(unsigned int *buffer, long size, unsigned int *hist
 
 **Professor Explanation:** Solution: 600 cycles/atomic (read and write = 300+300)1/600 atomic/cycles x 3*10^9 cycles/sec = 5x10^6atomics/secondUniform distribution means all 24 bins will potentially be updated concurrentlyTherefore 5x10^6atomics/second *24bins = 120 Million atomics/second
 
+**Explanation:** 
+
 ---
 
 ## Question 2
@@ -649,6 +685,8 @@ __global__ void histo_kernel(unsigned int *buffer, long size, unsigned int *hist
 **Answer:** A
 
 **Professor Explanation:** Solution: 600 cycles/atomic (read and write = 300+300)1/600 atomic/cycles x 3*10^9 cycles/sec = 5x10^6atomics/secondUniform distribution means all 24 bins will potentially be updated concurrentlyTherefore 5x10^6atomics/second *24bins = 120 Million atomics/secondFive operations per atomic instruction ( <, +, *, +, %)Total number of operations = 5 * 120 = 600 M ops/second
+
+**Explanation:** 
 
 ---
 
@@ -707,6 +745,8 @@ for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) {
 
 **Professor Explanation:** During the first iteration, even index threads are active. There is control divergence in all the warps. Thread block size is 1024, there are 32 warps
 
+**Explanation:** 
+
 ---
 
 ## Question 5
@@ -748,6 +788,8 @@ for (unsigned int stride = 1; stride <= blockDim.x; stride *= 2) {
 
 **Professor Explanation:** threads 0, 128, 256,... participate.In warp 0: 0-31 thread 0 participates other 31 threads don’t participate, divergingIn warp 1: 32-63 no thread participates, similar with 64-95, 96-127Total of 8 warps diverge among 1024 threads
 
+**Explanation:** 
+
 ---
 
 ## Question 6
@@ -779,6 +821,8 @@ for (unsigned int stride = blockDim.x; stride > 0; stride /= 2) {
 **Answer:** A
 
 **Professor Explanation:** n each iteration, there are 2*stride consecutive active threads. During the iteration where stride is 16, there are 32 consecutive active threads, all in the same warp. These two warps will have threads all participating in computation. Remaining threads 32 to 1023 will not participate. So there is no warp divergence
+
+**Explanation:** 
 
 ---
 
@@ -825,6 +869,8 @@ __global__ void my_kernel(float *X, float *Y, int InputSize) {
 
 **Professor Explanation:** The number of add operations performed by this kernel (step efficient but not work efficient) is approximately N*log(N), where N is the number of elements. 512log(512) = 9*512
 
+**Explanation:** 
+
 ---
 
 ## Question 2
@@ -867,6 +913,8 @@ __global__ void my_kernel(float *X, float *Y, int InputSize) {
 **Answer:** E
 
 **Professor Explanation:** The number of add operations performed by this kernel (step efficient but not work efficient) is approximately N*log(N), where N is the number of elements = 512log(512) = 512*9, since ther are 8 thread blocks total number of add operatins is 72*512
+
+**Explanation:** 
 
 ---
 
@@ -930,6 +978,8 @@ int main(int argc, char **argv) {
 
 **Professor Explanation:** There are 2^5*2^10 elements, block size is 2^9, therefore we will have a total of 64 thread blocks.In each block we have 512/32 = 16 warps.When stride is 8, threads 0 to 7 in the entire thread block do not participate in the compuations.Threads 0 to 7 all belong to warp 0. That means warp 0 will observe thrad divergence and reaming 15 warps will not observe divergence. 1 warp per thread block will observe divergence. There are 64 thread blocks, therefore 64 warps will observe divergence
 
+**Explanation:** 
+
 ---
 
 ## Question 4
@@ -991,6 +1041,8 @@ int main(int argc, char **argv) {
 **Answer:** A
 
 **Professor Explanation:** All 128 inactive threads are at the front of the block. Therefore, all threads in the first four warps are inactive. All threads in the remaining warps are active. There is no control divergence
+
+**Explanation:** 
 
 ---
 
@@ -1055,5 +1107,7 @@ for (int i = 1; i < ARRAY_SIZE; i++) {
 
 
 **Answer:** E
+
+**Explanation:** 
 
 ---
