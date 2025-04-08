@@ -27,6 +27,7 @@ def gather_resources(resources_dir):
             # Store the file path (relative to resources_dir) and extension
             resources[quiz_num][question_num][section_name].append((os.path.join(resources_dir, filename), file_ext))
     
+    print(resources)  # Debugging: print the gathered resources
     return resources
 
 def embed_resource(filepath, file_ext):
@@ -132,17 +133,18 @@ def json_to_markdown(json_file, output_file, resources_dir="resources"):
                             md_lines.append("")
             
             # --- ADDITIONAL EXPLANATION SECTION ---
-            explanation = q_content.get("explanation", "").strip()
-            if explanation:
-                md_lines.append(f"**Explanation:** {explanation}")
-                md_lines.append("")
+            if quiz_num_str in all_resources and q_num in all_resources[quiz_num_str]:
+                if "explanation" in all_resources[quiz_num_str][q_num]:
+                    explanation = q_content.get("explanation", "").strip()
+                    md_lines.append(f"**Explanation:** {explanation}")
+                    md_lines.append("")
+
+                    for (res_path, res_ext) in all_resources[quiz_num_str][q_num]["explanation"]:
+                        md_lines.append(embed_resource(res_path, res_ext))
+                        md_lines.append("")
+           
                 
-                # Insert resources for "explanation" if any
-                if quiz_num_str in all_resources and q_num in all_resources[quiz_num_str]:
-                    if "explanation" in all_resources[quiz_num_str][q_num]:
-                        for (res_path, res_ext) in all_resources[quiz_num_str][q_num]["explanation"]:
-                            md_lines.append(embed_resource(res_path, res_ext))
-                            md_lines.append("")
+                
             
             # Separator between questions
             md_lines.append("---")

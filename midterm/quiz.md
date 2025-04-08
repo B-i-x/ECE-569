@@ -12,6 +12,10 @@
 
 **Answer:** D
 
+**Explanation:** 
+
+![Resource image](resources/Quiz1-1-explanation.png)
+
 ---
 
 ## Question 2
